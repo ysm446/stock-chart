@@ -443,7 +443,7 @@ export default function ChartPanel() {
               <span>{selectedStock?.sector}</span>
             </div>
           </div>
-          
+
           <div className="flex items-center gap-4">
             <button
               onClick={() => setShowPeaks(!showPeaks)}

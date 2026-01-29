@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Menu, X, Settings, Search, MoreVertical, Edit, ChevronDown, ChevronRight } from 'lucide-react'
+import { Menu, X, Settings, Search, MoreVertical, Edit, ChevronDown, ChevronRight, ShoppingCart } from 'lucide-react'
 import { useChartStore } from '@/store/chartStore'
 import { chartApi } from '@/services/api'
 import api from '@/services/api'
@@ -18,6 +18,7 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps) {
   const [loading, setLoading] = useState(true)
   const [showStockManager, setShowStockManager] = useState(false)
   const [showStockSearch, setShowStockSearch] = useState(false)
+  const [showPurchasePanel, setShowPurchasePanel] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [allStocks, setAllStocks] = useState<any[]>([])
   const [menuOpenFor, setMenuOpenFor] = useState<number | null>(null)
@@ -235,9 +236,6 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps) {
               </div>
             ) : (
               <>
-                {/* Purchase Manager - only shows when stock is selected */}
-                {selectedStock && <PurchaseManager />}
-
                 {filteredIndices.length > 0 && renderStockList(filteredIndices, '主要指標', 'indices', false)}
                 {renderStockList(ownedStocks, '保有銘柄', 'owned')}
                 {renderStockList(watchlistStocks, 'ウォッチリスト', 'watchlist')}
@@ -247,6 +245,15 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps) {
 
           {/* フッター */}
           <div className="px-4 pt-4 border-t border-dark-border space-y-2">
+            {selectedStock && (
+              <button
+                onClick={() => setShowPurchasePanel(!showPurchasePanel)}
+                className="w-full flex items-center gap-2 px-4 py-2 bg-orange-600 hover:bg-orange-700 rounded-lg transition-colors"
+              >
+                <ShoppingCart size={16} />
+                <span>購入履歴</span>
+              </button>
+            )}
             <button
               onClick={() => setShowStockSearch(true)}
               className="w-full flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg transition-colors"
@@ -278,6 +285,35 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps) {
         onClose={() => setShowStockManager(false)}
         onUpdate={loadStocks}
       />
+
+      {/* 購入履歴パネル */}
+      <aside
+        className={clsx(
+          'fixed left-80 top-0 h-screen w-80 bg-dark-surface border-r border-dark-border transition-transform duration-300 z-30 overflow-y-auto',
+          showPurchasePanel && selectedStock ? 'translate-x-0' : '-translate-x-full'
+        )}
+      >
+        <div className="flex flex-col h-full pt-16 pb-4">
+          {/* ヘッダー */}
+          <div className="px-4 mb-4 flex items-center justify-between">
+            <div>
+              <h2 className="text-xl font-bold text-white">購入履歴</h2>
+              <p className="text-sm text-gray-400 mt-1">{selectedStock?.name}</p>
+            </div>
+            <button
+              onClick={() => setShowPurchasePanel(false)}
+              className="p-2 rounded-lg bg-dark-bg border border-dark-border hover:bg-dark-hover transition-colors"
+            >
+              <X size={20} />
+            </button>
+          </div>
+
+          {/* 購入履歴コンテンツ */}
+          <div className="flex-1 overflow-y-auto px-4">
+            <PurchaseManager />
+          </div>
+        </div>
+      </aside>
     </>
   )
 }
