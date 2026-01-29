@@ -1,0 +1,81 @@
+import { create } from 'zustand'
+import { persist } from 'zustand/middleware'
+
+export interface Stock {
+  id: number
+  symbol: string
+  name: string
+  market: string
+  category: string
+}
+
+export interface Watchlist {
+  id: number
+  name: string
+  color: string
+  stocks: Stock[]
+}
+
+export type Timeframe = '1d' | '1wk' | '1mo'
+
+export interface Indicator {
+  type: 'sma25' | 'sma50' | 'sma75' | 'ema' | 'bollinger'
+  visible: boolean
+  period?: number
+}
+
+interface ChartStore {
+  selectedStock: Stock | null
+  timeframe: Timeframe
+  indicators: Indicator[]
+  watchlists: Watchlist[]
+  showPeaks: boolean
+  showVolume: boolean
+  
+  setSelectedStock: (stock: Stock | null) => void
+  setTimeframe: (timeframe: Timeframe) => void
+  toggleIndicator: (type: Indicator['type']) => void
+  setWatchlists: (watchlists: Watchlist[]) => void
+  setShowPeaks: (show: boolean) => void
+  setShowVolume: (show: boolean) => void
+}
+
+export const useChartStore = create<ChartStore>()(
+  persist(
+    (set) => ({
+      selectedStock: null,
+      timeframe: '1d',
+      indicators: [
+        { type: 'sma25', visible: false, period: 25 },
+        { type: 'sma50', visible: false, period: 50 },
+        { type: 'sma75', visible: false, period: 75 },
+        { type: 'ema', visible: false, period: 12 },
+        { type: 'bollinger', visible: false, period: 20 },
+      ],
+      watchlists: [],
+      showPeaks: true,
+      showVolume: true,
+      
+      setSelectedStock: (stock) => set({ selectedStock: stock }),
+      setTimeframe: (timeframe) => set({ timeframe }),
+      toggleIndicator: (type) =>
+        set((state) => ({
+          indicators: state.indicators.map((ind) =>
+            ind.type === type ? { ...ind, visible: !ind.visible } : ind
+          ),
+        })),
+      setWatchlists: (watchlists) => set({ watchlists }),
+      setShowPeaks: (show) => set({ showPeaks: show }),
+      setShowVolume: (show) => set({ showVolume: show }),
+    }),
+    {
+      name: 'chart-storage',
+      partialize: (state) => ({
+        timeframe: state.timeframe,
+        indicators: state.indicators,
+        showPeaks: state.showPeaks,
+        showVolume: state.showVolume,
+      }),
+    }
+  )
+)
