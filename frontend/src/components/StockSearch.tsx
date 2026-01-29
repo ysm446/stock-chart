@@ -14,6 +14,7 @@ interface SearchResult {
   name: string
   market: string
   currency: string
+  sector?: string
 }
 
 export default function StockSearch({ isOpen, onClose, onStockAdded }: StockSearchProps) {
@@ -55,7 +56,8 @@ export default function StockSearch({ isOpen, onClose, onStockAdded }: StockSear
         symbol: result.symbol,
         name: result.name,
         market: result.market,
-        category: selectedCategory[result.symbol] || 'ウォッチリスト'
+        sector: result.sector || 'その他',
+        user_category: selectedCategory[result.symbol] || 'ウォッチリスト'
       })
       
       alert(`${result.name} を${selectedCategory[result.symbol]}に登録しました`)

@@ -17,7 +17,13 @@ class StockResponse(BaseModel):
     symbol: str
     name: str
     market: str
-    category: str
+    sector: str | None = ""
+    user_category: str | None = ""
+
+    # 後方互換性のためのプロパティ
+    @property
+    def category(self):
+        return self.user_category or ""
 
     class Config:
         from_attributes = True

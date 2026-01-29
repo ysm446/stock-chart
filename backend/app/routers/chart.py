@@ -27,11 +27,14 @@ async def get_chart_data(
     チャートデータ取得
     
     Args:
-        symbol: 銘柄コード（例: 7203 または 7203.T）
+        symbol: 銘柄コード（例: 7203 または 7203.T または ^N225 または USDJPY=X）
         timeframe: 時間軸（1d=日足、1wk=週足、1mo=月足）
     """
-    # 日本株用に.T接尾辞を追加（まだない場合）
-    yahoo_symbol = symbol if symbol.endswith('.T') else f"{symbol}.T"
+    # 指数（^で始まる）、為替（=Xで終わる）、またはすでに.Tがある場合はそのまま、それ以外は.T接尾辞を追加
+    if symbol.startswith('^') or symbol.endswith('.T') or symbol.endswith('=X'):
+        yahoo_symbol = symbol
+    else:
+        yahoo_symbol = f"{symbol}.T"
     
     cache_key = f"chart:{symbol}:{timeframe}"
     

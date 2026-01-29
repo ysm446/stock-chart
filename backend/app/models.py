@@ -9,7 +9,8 @@ class Stock(Base):
     symbol = Column(String(20), unique=True, nullable=False, index=True)
     name = Column(String(255), nullable=False)
     market = Column(String(50))
-    category = Column(String(100), index=True)
+    sector = Column(String(100))  # 業種（電気機器、化学など）
+    user_category = Column(String(100), default="ウォッチリスト", index=True)  # ユーザー分類（保有銘柄、ウォッチリスト）
     
     prices = relationship("StockPrice", back_populates="stock")
 

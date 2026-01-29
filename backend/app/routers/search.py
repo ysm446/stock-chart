@@ -11,6 +11,7 @@ class StockSearchResult(BaseModel):
     name: str
     market: str
     currency: str
+    sector: str = ""
 
 # 銘柄マスターデータをCSVから読み込み
 def load_stock_master():
@@ -25,7 +26,8 @@ def load_stock_master():
                     stocks.append((
                         row['code'],
                         row['name'],
-                        row['name_en']
+                        row['name_en'],
+                        row.get('sector', 'その他')
                     ))
             print(f"Loaded {len(stocks)} stocks from CSV")
         except Exception as e:
@@ -34,12 +36,12 @@ def load_stock_master():
     # CSVがない場合のフォールバック
     if not stocks:
         stocks = [
-            ("7203", "トヨタ自動車", "Toyota"),
-            ("9984", "ソフトバンクグループ", "SoftBank"),
-            ("6758", "ソニーグループ", "Sony"),
-            ("8058", "三菱商事", "Mitsubishi"),
-            ("8031", "三井物産", "Mitsui"),
-            ("7011", "三菱重工業", "MitsubishiHeavy"),
+            ("7203", "トヨタ自動車", "Toyota", "輸送用機器"),
+            ("9984", "ソフトバンクグループ", "SoftBank", "情報・通信業"),
+            ("6758", "ソニーグループ", "Sony", "電気機器"),
+            ("8058", "三菱商事", "Mitsubishi", "卸売業"),
+            ("8031", "三井物産", "Mitsui", "卸売業"),
+            ("7011", "三菱重工業", "MitsubishiHeavy", "機械"),
         ]
         print(f"Using fallback list with {len(stocks)} stocks")
     
@@ -62,7 +64,7 @@ async def search_stocks(q: str):
     query_lower = q.lower()
     
     # 検索実行
-    for code, name_jp, name_en in STOCK_MASTER:
+    for code, name_jp, name_en, sector in STOCK_MASTER:
         # 銘柄コードまたは銘柄名で一致
         if (query_upper in code.upper() or 
             query_lower in name_jp.lower() or 
@@ -71,7 +73,8 @@ async def search_stocks(q: str):
                 "symbol": code,
                 "name": name_jp,
                 "market": "東証",
-                "currency": "JPY"
+                "currency": "JPY",
+                "sector": sector
             })
     
     return results[:50]  # 最大50件

@@ -19,7 +19,8 @@ export default function StockManager({ isOpen, onClose, onUpdate }: StockManager
     symbol: '',
     name: '',
     market: 'Tokyo',
-    category: ''
+    sector: '',
+    user_category: 'ウォッチリスト'
   })
 
   useEffect(() => {
@@ -48,7 +49,8 @@ export default function StockManager({ isOpen, onClose, onUpdate }: StockManager
         await api.put(`/stocks/${editingStock.id}`, {
           name: formData.name,
           market: formData.market,
-          category: formData.category
+          sector: formData.sector,
+          user_category: formData.user_category
         })
       } else {
         // 新規追加
@@ -81,13 +83,14 @@ export default function StockManager({ isOpen, onClose, onUpdate }: StockManager
       symbol: stock.symbol,
       name: stock.name,
       market: stock.market,
-      category: stock.category
+      sector: (stock as any).sector || '',
+      user_category: (stock as any).user_category || stock.category || 'ウォッチリスト'
     })
     setShowAddForm(true)
   }
 
   const resetForm = () => {
-    setFormData({ symbol: '', name: '', market: 'Tokyo', category: '' })
+    setFormData({ symbol: '', name: '', market: 'Tokyo', sector: '', user_category: 'ウォッチリスト' })
     setEditingStock(null)
     setShowAddForm(false)
   }
@@ -152,15 +155,26 @@ export default function StockManager({ isOpen, onClose, onUpdate }: StockManager
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">カテゴリ</label>
+                <label className="block text-sm font-medium mb-1">業種</label>
                 <input
                   type="text"
-                  value={formData.category}
-                  onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                  placeholder="例: 自動車"
+                  value={formData.sector}
+                  onChange={(e) => setFormData({ ...formData, sector: e.target.value })}
+                  placeholder="例: 輸送用機器"
+                  className="w-full px-3 py-2 bg-dark-surface border border-dark-border rounded-lg"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">分類</label>
+                <select
+                  value={formData.user_category}
+                  onChange={(e) => setFormData({ ...formData, user_category: e.target.value })}
                   className="w-full px-3 py-2 bg-dark-surface border border-dark-border rounded-lg"
                   required
-                />
+                >
+                  <option value="ウォッチリスト">ウォッチリスト</option>
+                  <option value="保有銘柄">保有銘柄</option>
+                </select>
               </div>
             </div>
             <div className="flex gap-2 mt-4">
@@ -195,7 +209,7 @@ export default function StockManager({ isOpen, onClose, onUpdate }: StockManager
                   <div className="flex-1">
                     <div className="font-medium">{stock.name}</div>
                     <div className="text-sm text-gray-400">
-                      {stock.symbol} / {stock.market} / {stock.category}
+                      {stock.symbol} / {stock.market} / {(stock as any).sector || '-'} / {(stock as any).user_category || stock.category}
                     </div>
                   </div>
                   <div className="flex gap-2">

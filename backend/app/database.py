@@ -28,16 +28,16 @@ async def init_db():
         if db.query(Stock).count() == 0:
             # サンプル銘柄データ
             stocks = [
-                Stock(symbol='7203.T', name='トヨタ自動車', market='Tokyo', category='自動車'),
-                Stock(symbol='9984.T', name='ソフトバンクグループ', market='Tokyo', category='通信'),
-                Stock(symbol='6758.T', name='ソニーグループ', market='Tokyo', category='電気機器'),
-                Stock(symbol='9432.T', name='日本電信電話', market='Tokyo', category='通信'),
-                Stock(symbol='6861.T', name='キーエンス', market='Tokyo', category='電気機器'),
-                Stock(symbol='8306.T', name='三菱UFJフィナンシャル・グループ', market='Tokyo', category='銀行'),
-                Stock(symbol='6501.T', name='日立製作所', market='Tokyo', category='電気機器'),
-                Stock(symbol='7974.T', name='任天堂', market='Tokyo', category='その他製品'),
-                Stock(symbol='4063.T', name='信越化学工業', market='Tokyo', category='化学'),
-                Stock(symbol='8035.T', name='東京エレクトロン', market='Tokyo', category='電気機器'),
+                Stock(symbol='7203.T', name='トヨタ自動車', market='Tokyo', sector='輸送用機器', user_category='ウォッチリスト'),
+                Stock(symbol='9984.T', name='ソフトバンクグループ', market='Tokyo', sector='情報・通信業', user_category='ウォッチリスト'),
+                Stock(symbol='6758.T', name='ソニーグループ', market='Tokyo', sector='電気機器', user_category='ウォッチリスト'),
+                Stock(symbol='9432.T', name='日本電信電話', market='Tokyo', sector='情報・通信業', user_category='ウォッチリスト'),
+                Stock(symbol='6861.T', name='キーエンス', market='Tokyo', sector='電気機器', user_category='ウォッチリスト'),
+                Stock(symbol='8306.T', name='三菱UFJフィナンシャル・グループ', market='Tokyo', sector='銀行業', user_category='ウォッチリスト'),
+                Stock(symbol='6501.T', name='日立製作所', market='Tokyo', sector='電気機器', user_category='ウォッチリスト'),
+                Stock(symbol='7974.T', name='任天堂', market='Tokyo', sector='その他製品', user_category='ウォッチリスト'),
+                Stock(symbol='4063.T', name='信越化学工業', market='Tokyo', sector='化学', user_category='ウォッチリスト'),
+                Stock(symbol='8035.T', name='東京エレクトロン', market='Tokyo', sector='電気機器', user_category='ウォッチリスト'),
             ]
             db.add_all(stocks)
             db.commit()

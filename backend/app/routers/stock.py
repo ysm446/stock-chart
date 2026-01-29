@@ -11,19 +11,27 @@ class StockCreate(BaseModel):
     symbol: str
     name: str
     market: str = "Tokyo"
-    category: str = "その他"
+    sector: str = "その他"
+    user_category: str = "ウォッチリスト"
 
 class StockUpdate(BaseModel):
     name: str | None = None
     market: str | None = None
-    category: str | None = None
+    sector: str | None = None
+    user_category: str | None = None
 
 class StockResponse(BaseModel):
     id: int
     symbol: str
     name: str
     market: str
-    category: str
+    sector: str
+    user_category: str
+    
+    # 後方互換性のため
+    @property
+    def category(self):
+        return self.user_category
 
     class Config:
         from_attributes = True
@@ -46,7 +54,8 @@ async def create_stock(stock: StockCreate, db: Session = Depends(get_db)):
         symbol=stock.symbol,
         name=stock.name,
         market=stock.market,
-        category=stock.category
+        sector=stock.sector,
+        user_category=stock.user_category
     )
     db.add(new_stock)
     db.commit()
@@ -92,8 +101,10 @@ async def update_stock(
         stock.name = stock_update.name
     if stock_update.market is not None:
         stock.market = stock_update.market
-    if stock_update.category is not None:
-        stock.category = stock_update.category
+    if stock_update.sector is not None:
+        stock.sector = stock_update.sector
+    if stock_update.user_category is not None:
+        stock.user_category = stock_update.user_category
     
     db.commit()
     db.refresh(stock)

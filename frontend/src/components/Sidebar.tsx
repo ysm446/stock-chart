@@ -53,14 +53,26 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps) {
     }
   }
 
+  // 指標データ（固定）
+  const indices = [
+    { id: -1, symbol: '^N225', name: '日経平均株価', category: '主要指標', market: 'Tokyo' },
+    { id: -2, symbol: 'USDJPY=X', name: '米ドル/円', category: '主要指標', market: 'FX' }
+  ]
+
   const filteredStocks = allStocks.filter(stock => 
     !searchQuery.trim() || 
     stock.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     stock.symbol.toLowerCase().includes(searchQuery.toLowerCase())
   )
 
-  const ownedStocks = filteredStocks.filter(stock => stock.category === '保有銘柄')
-  const watchlistStocks = filteredStocks.filter(stock => stock.category === 'ウォッチリスト')
+  const filteredIndices = indices.filter(index =>
+    !searchQuery.trim() ||
+    index.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    index.symbol.toLowerCase().includes(searchQuery.toLowerCase())
+  )
+
+  const ownedStocks = filteredStocks.filter(stock => stock.user_category === '保有銘柄' || stock.category === '保有銘柄')
+  const watchlistStocks = filteredStocks.filter(stock => stock.user_category === 'ウォッチリスト' || stock.category === 'ウォッチリスト')
 
   const toggleCategory = (category: string) => {
     setCollapsedCategories(prev => {
@@ -77,7 +89,7 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps) {
 
   const handleCategoryChange = async (stockId: number, newCategory: string) => {
     try {
-      await api.put(`/stocks/${stockId}`, { category: newCategory })
+      await api.put(`/stocks/${stockId}`, { user_category: newCategory })
       loadStocks()
       setMenuOpenFor(null)
     } catch (error) {
@@ -86,7 +98,7 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps) {
     }
   }
 
-  const renderStockList = (stocks: any[], title: string, categoryKey: string) => {
+  const renderStockList = (stocks: any[], title: string, categoryKey: string, showMenu: boolean = true) => {
     const isCollapsed = collapsedCategories.has(categoryKey)
     
     return (
@@ -128,25 +140,29 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps) {
                     </button>
                     
                     {/* カテゴリ変更メニュー */}
-                    <button
-                      onClick={() => setMenuOpenFor(menuOpenFor === stock.id ? null : stock.id)}
-                      className={clsx(
-                        'absolute right-2 top-2 p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity',
-                        selectedStock?.id === stock.id ? 'text-white' : 'text-gray-400 hover:text-white'
-                      )}
-                    >
-                      <MoreVertical size={16} />
-                    </button>
-                    
-                    {menuOpenFor === stock.id && (
-                      <div className="absolute right-0 top-10 z-50 bg-dark-surface border border-dark-border rounded-lg shadow-xl py-1 min-w-[150px]">
+                    {showMenu && (
+                      <>
                         <button
-                          onClick={() => handleCategoryChange(stock.id, stock.category === '保有銘柄' ? 'ウォッチリスト' : '保有銘柄')}
-                          className="w-full px-4 py-2 text-left text-sm hover:bg-dark-hover transition-colors"
+                          onClick={() => setMenuOpenFor(menuOpenFor === stock.id ? null : stock.id)}
+                          className={clsx(
+                            'absolute right-2 top-2 p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity',
+                            selectedStock?.id === stock.id ? 'text-white' : 'text-gray-400 hover:text-white'
+                          )}
                         >
-                          {stock.category === '保有銘柄' ? 'ウォッチリストへ' : '保有銘柄へ'}
+                          <MoreVertical size={16} />
                         </button>
-                      </div>
+                        
+                        {menuOpenFor === stock.id && (
+                          <div className="absolute right-0 top-10 z-50 bg-dark-surface border border-dark-border rounded-lg shadow-xl py-1 min-w-[150px]">
+                            <button
+                              onClick={() => handleCategoryChange(stock.id, (stock.user_category || stock.category) === '保有銘柄' ? 'ウォッチリスト' : '保有銘柄')}
+                              className="w-full px-4 py-2 text-left text-sm hover:bg-dark-hover transition-colors"
+                            >
+                              {(stock.user_category || stock.category) === '保有銘柄' ? 'ウォッチリストへ' : '保有銘柄へ'}
+                            </button>
+                          </div>
+                        )}
+                      </>
                     )}
                   </div>
                 ))}
@@ -177,8 +193,8 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps) {
         <div className="flex flex-col h-full pt-16 pb-4">
           {/* ヘッダー */}
           <div className="px-4 mb-4">
-            <h1 className="text-2xl font-bold text-white">日本株チャート</h1>
-            <p className="text-sm text-gray-400 mt-1">テクニカル分析ツール</p>
+            <h1 className="text-2xl font-bold text-white">Stock Chart</h1>
+            <p className="text-sm text-gray-400 mt-1">Technical Analysis Tool</p>
           </div>
 
           {/* 検索ボックス */}
@@ -212,12 +228,13 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps) {
           <div className="flex-1 overflow-y-auto px-4">
             {loading ? (
               <div className="text-gray-400 text-center py-8">読み込み中...</div>
-            ) : filteredStocks.length === 0 ? (
+            ) : filteredStocks.length === 0 && filteredIndices.length === 0 ? (
               <div className="text-gray-400 text-center py-8">
                 {searchQuery ? '検索結果がありません' : '銘柄がありません'}
               </div>
             ) : (
               <>
+                {filteredIndices.length > 0 && renderStockList(filteredIndices, '主要指標', 'indices', false)}
                 {renderStockList(ownedStocks, '保有銘柄', 'owned')}
                 {renderStockList(watchlistStocks, 'ウォッチリスト', 'watchlist')}
               </>
