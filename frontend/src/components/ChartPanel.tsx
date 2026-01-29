@@ -324,6 +324,7 @@ export default function ChartPanel() {
           title: 'SMA(25)',
           priceLineVisible: false,
           lastValueVisible: false,
+          crosshairMarkerVisible: false,
         })
         const sma25Data: LineData<Time>[] = data.sma25.map((item: any) => ({
           time: item.time as Time,
@@ -340,6 +341,7 @@ export default function ChartPanel() {
           title: 'SMA(50)',
           priceLineVisible: false,
           lastValueVisible: false,
+          crosshairMarkerVisible: false,
         })
         const sma50Data: LineData<Time>[] = data.sma50.map((item: any) => ({
           time: item.time as Time,
@@ -356,6 +358,7 @@ export default function ChartPanel() {
           title: 'SMA(75)',
           priceLineVisible: false,
           lastValueVisible: false,
+          crosshairMarkerVisible: false,
         })
         const sma75Data: LineData<Time>[] = data.sma75.map((item: any) => ({
           time: item.time as Time,
@@ -372,6 +375,7 @@ export default function ChartPanel() {
           title: `EMA(${indicator.period})`,
           priceLineVisible: false,
           lastValueVisible: false,
+          crosshairMarkerVisible: false,
         })
         const emaData: LineData<Time>[] = data.ema.map((item: any) => ({
           time: item.time as Time,
@@ -384,11 +388,12 @@ export default function ChartPanel() {
       if (indicator.type === 'bollinger' && data.bollinger) {
         // 上限バンド
         const upperSeries = chartRef.current!.addLineSeries({
-          color: '#E040FB',
+          color: '#00BCD4',
           lineWidth: 1,
           title: 'BB Upper',
           priceLineVisible: false,
           lastValueVisible: false,
+          crosshairMarkerVisible: false,
         })
         const upperData: LineData<Time>[] = data.bollinger.upper.map((item: any) => ({
           time: item.time as Time,
@@ -399,11 +404,12 @@ export default function ChartPanel() {
 
         // 中央線
         const middleSeries = chartRef.current!.addLineSeries({
-          color: '#AB47BC',
+          color: '#00BCD4',
           lineWidth: 1,
           title: 'BB Middle',
           priceLineVisible: false,
           lastValueVisible: false,
+          crosshairMarkerVisible: false,
         })
         const middleData: LineData<Time>[] = data.bollinger.middle.map((item: any) => ({
           time: item.time as Time,
@@ -414,11 +420,12 @@ export default function ChartPanel() {
 
         // 下限バンド
         const lowerSeries = chartRef.current!.addLineSeries({
-          color: '#E040FB',
+          color: '#00BCD4',
           lineWidth: 1,
           title: 'BB Lower',
           priceLineVisible: false,
           lastValueVisible: false,
+          crosshairMarkerVisible: false,
         })
         const lowerData: LineData<Time>[] = data.bollinger.lower.map((item: any) => ({
           time: item.time as Time,
