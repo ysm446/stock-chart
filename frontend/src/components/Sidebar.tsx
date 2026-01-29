@@ -5,6 +5,7 @@ import { chartApi } from '@/services/api'
 import api from '@/services/api'
 import StockManager from './StockManager'
 import StockSearch from './StockSearch'
+import PurchaseManager from './PurchaseManager'
 import clsx from 'clsx'
 
 interface SidebarProps {
@@ -234,6 +235,9 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps) {
               </div>
             ) : (
               <>
+                {/* Purchase Manager - only shows when stock is selected */}
+                {selectedStock && <PurchaseManager />}
+
                 {filteredIndices.length > 0 && renderStockList(filteredIndices, '主要指標', 'indices', false)}
                 {renderStockList(ownedStocks, '保有銘柄', 'owned')}
                 {renderStockList(watchlistStocks, 'ウォッチリスト', 'watchlist')}

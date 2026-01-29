@@ -1,6 +1,7 @@
 from sqlalchemy import Column, Integer, String, DECIMAL, BigInteger, DateTime, ForeignKey
 from sqlalchemy.orm import relationship
 from app.database import Base
+from datetime import datetime
 
 class Stock(Base):
     __tablename__ = "stocks"
@@ -11,8 +12,9 @@ class Stock(Base):
     market = Column(String(50))
     sector = Column(String(100))  # 業種（電気機器、化学など）
     user_category = Column(String(100), default="ウォッチリスト", index=True)  # ユーザー分類（保有銘柄、ウォッチリスト）
-    
+
     prices = relationship("StockPrice", back_populates="stock")
+    purchases = relationship("StockPurchase", back_populates="stock")
 
 class StockPrice(Base):
     __tablename__ = "stock_prices"
@@ -41,3 +43,17 @@ class WatchlistStock(Base):
     watchlist_id = Column(Integer, ForeignKey("watchlists.id"), primary_key=True)
     stock_id = Column(Integer, ForeignKey("stocks.id"), primary_key=True)
     sort_order = Column(Integer, default=0)
+
+class StockPurchase(Base):
+    __tablename__ = "stock_purchases"
+
+    id = Column(Integer, primary_key=True, index=True)
+    stock_id = Column(Integer, ForeignKey("stocks.id"), nullable=False)
+    purchase_date = Column(DateTime, nullable=False, index=True)
+    quantity = Column(Integer, nullable=False)  # 購入株数
+    purchase_price = Column(DECIMAL(12, 2), nullable=False)  # 購入単価
+    notes = Column(String(500))  # メモ（オプション）
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    stock = relationship("Stock", back_populates="purchases")

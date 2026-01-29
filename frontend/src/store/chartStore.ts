@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import type { Purchase } from '@/services/api'
 
 export interface Stock {
   id: number
@@ -31,13 +32,17 @@ interface ChartStore {
   watchlists: Watchlist[]
   showPeaks: boolean
   showVolume: boolean
-  
+  purchases: Purchase[]
+  showPurchaseMarkers: boolean
+
   setSelectedStock: (stock: Stock | null) => void
   setTimeframe: (timeframe: Timeframe) => void
   toggleIndicator: (type: Indicator['type']) => void
   setWatchlists: (watchlists: Watchlist[]) => void
   setShowPeaks: (show: boolean) => void
   setShowVolume: (show: boolean) => void
+  setPurchases: (purchases: Purchase[]) => void
+  setShowPurchaseMarkers: (show: boolean) => void
 }
 
 export const useChartStore = create<ChartStore>()(
@@ -55,7 +60,9 @@ export const useChartStore = create<ChartStore>()(
       watchlists: [],
       showPeaks: true,
       showVolume: true,
-      
+      purchases: [],
+      showPurchaseMarkers: true,
+
       setSelectedStock: (stock) => set({ selectedStock: stock }),
       setTimeframe: (timeframe) => set({ timeframe }),
       toggleIndicator: (type) =>
@@ -67,6 +74,8 @@ export const useChartStore = create<ChartStore>()(
       setWatchlists: (watchlists) => set({ watchlists }),
       setShowPeaks: (show) => set({ showPeaks: show }),
       setShowVolume: (show) => set({ showVolume: show }),
+      setPurchases: (purchases) => set({ purchases }),
+      setShowPurchaseMarkers: (show) => set({ showPurchaseMarkers: show }),
     }),
     {
       name: 'chart-storage',
@@ -75,6 +84,7 @@ export const useChartStore = create<ChartStore>()(
         indicators: state.indicators,
         showPeaks: state.showPeaks,
         showVolume: state.showVolume,
+        showPurchaseMarkers: state.showPurchaseMarkers,
       }),
     }
   )

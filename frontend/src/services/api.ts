@@ -31,6 +31,32 @@ export interface ChartResponse {
   }
 }
 
+export interface Purchase {
+  id: number
+  stock_id: number
+  purchase_date: string
+  quantity: number
+  purchase_price: number
+  notes?: string
+  created_at: string
+  updated_at: string
+}
+
+export interface PurchaseCreate {
+  stock_id: number
+  purchase_date: string
+  quantity: number
+  purchase_price: number
+  notes?: string
+}
+
+export interface PurchaseUpdate {
+  purchase_date?: string
+  quantity?: number
+  purchase_price?: number
+  notes?: string
+}
+
 export const chartApi = {
   async getChartData(symbol: string, timeframe: string): Promise<ChartResponse> {
     const response = await api.get(`/chart/${symbol}`, {
@@ -59,6 +85,28 @@ export const chartApi = {
       params: { q: query }
     })
     return response.data
+  }
+}
+
+export const purchaseApi = {
+  async getPurchases(stockId?: number): Promise<Purchase[]> {
+    const params = stockId ? { stock_id: stockId } : {}
+    const response = await api.get('/purchases', { params })
+    return response.data
+  },
+
+  async createPurchase(purchase: PurchaseCreate): Promise<Purchase> {
+    const response = await api.post('/purchases', purchase)
+    return response.data
+  },
+
+  async updatePurchase(id: number, updates: PurchaseUpdate): Promise<Purchase> {
+    const response = await api.put(`/purchases/${id}`, updates)
+    return response.data
+  },
+
+  async deletePurchase(id: number): Promise<void> {
+    await api.delete(`/purchases/${id}`)
   }
 }
 

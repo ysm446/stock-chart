@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { createChart, IChartApi, ISeriesApi, CandlestickData, Time, LineData } from 'lightweight-charts'
 import { useChartStore } from '@/store/chartStore'
-import { chartApi, ChartData } from '@/services/api'
+import { chartApi, ChartData, purchaseApi } from '@/services/api'
 import TimeframeSelector from './TimeframeSelector'
 import IndicatorControls from './IndicatorControls'
 import { Eye, EyeOff } from 'lucide-react'
@@ -13,7 +13,7 @@ export default function ChartPanel() {
   const volumeSeriesRef = useRef<ISeriesApi<'Histogram'> | null>(null)
   const indicatorSeriesRef = useRef<Map<string, ISeriesApi<'Line'>>>(new Map())
   
-  const { selectedStock, timeframe, indicators, showPeaks, setShowPeaks, showVolume } = useChartStore()
+  const { selectedStock, timeframe, indicators, showPeaks, setShowPeaks, showVolume, purchases, setPurchases, showPurchaseMarkers, setShowPurchaseMarkers } = useChartStore()
   const [loading, setLoading] = useState(false)
   const [chartData, setChartData] = useState<ChartData[]>([])
   const [peaks, setPeaks] = useState<ChartData[]>([])
@@ -96,6 +96,7 @@ export default function ChartPanel() {
   useEffect(() => {
     if (selectedStock) {
       loadChartData()
+      loadPurchases()
     }
   }, [selectedStock, timeframe])
 
@@ -107,10 +108,13 @@ export default function ChartPanel() {
   }, [indicators])
 
   useEffect(() => {
-    // ピーク・谷表示の切り替え
-    if (candlestickSeriesRef.current) {
+    // ピーク・谷・購入履歴マーカー表示の切り替え
+    if (candlestickSeriesRef.current && chartData.length > 0) {
+      const markers = []
+
+      // Peak/Valley markers (if enabled)
       if (showPeaks && (peaks.length > 0 || valleys.length > 0)) {
-        const markers = [
+        markers.push(
           ...peaks.map(peak => ({
             time: peak.time as Time,
             position: 'aboveBar' as const,
@@ -125,19 +129,48 @@ export default function ChartPanel() {
             shape: 'arrowUp' as const,
             text: `¥${Math.floor(valley.low).toLocaleString()}`
           }))
-        ]
-        // 時間順にソート
-        markers.sort((a, b) => {
-          const timeA = typeof a.time === 'string' ? new Date(a.time).getTime() : a.time
-          const timeB = typeof b.time === 'string' ? new Date(b.time).getTime() : b.time
-          return timeA - timeB
-        })
-        candlestickSeriesRef.current.setMarkers(markers)
-      } else {
-        candlestickSeriesRef.current.setMarkers([])
+        )
       }
+
+      // Purchase markers (if enabled)
+      if (showPurchaseMarkers && selectedStock) {
+        const stockPurchases = purchases.filter(p => p.stock_id === selectedStock.id)
+
+        // Group purchases by date to handle multiple purchases on same day
+        const purchasesByDate = new Map<string, typeof stockPurchases>()
+        stockPurchases.forEach(purchase => {
+          const dateKey = purchase.purchase_date
+          if (!purchasesByDate.has(dateKey)) {
+            purchasesByDate.set(dateKey, [])
+          }
+          purchasesByDate.get(dateKey)!.push(purchase)
+        })
+
+        // Create markers for each date
+        purchasesByDate.forEach((datePurchases, dateKey) => {
+          const totalQty = datePurchases.reduce((sum, p) => sum + p.quantity, 0)
+          const avgPrice = datePurchases.reduce((sum, p) => sum + (p.quantity * p.purchase_price), 0) / totalQty
+
+          markers.push({
+            time: dateKey as Time,
+            position: 'belowBar' as const,
+            color: '#10B981', // Green color for purchases
+            shape: 'arrowUp' as const,
+            text: `購入 ${totalQty}株 @¥${Math.floor(avgPrice).toLocaleString()}`
+          })
+        })
+      }
+
+      // Sort markers by time
+      markers.sort((a, b) => {
+        const timeA = typeof a.time === 'string' ? new Date(a.time).getTime() : a.time
+        const timeB = typeof b.time === 'string' ? new Date(b.time).getTime() : b.time
+        return timeA - timeB
+      })
+
+      candlestickSeriesRef.current.setMarkers(markers)
     }
-  }, [showPeaks, peaks, valleys])
+  }, [showPeaks, showPurchaseMarkers, peaks, valleys, purchases, selectedStock, chartData])
 
   useEffect(() => {
     // 出来高表示の切り替え
@@ -154,6 +187,16 @@ export default function ChartPanel() {
       }
     }
   }, [showVolume, chartData])
+
+  const loadPurchases = async () => {
+    if (!selectedStock) return
+    try {
+      const data = await purchaseApi.getPurchases(selectedStock.id)
+      setPurchases(data)
+    } catch (error) {
+      console.error('Failed to load purchases:', error)
+    }
+  }
 
   const loadChartData = async () => {
     if (!selectedStock || !chartRef.current || !candlestickSeriesRef.current) return
@@ -406,6 +449,14 @@ export default function ChartPanel() {
             >
               {showPeaks ? <Eye size={18} /> : <EyeOff size={18} />}
               <span className="text-sm">ピーク</span>
+            </button>
+            <button
+              onClick={() => setShowPurchaseMarkers(!showPurchaseMarkers)}
+              className="flex items-center gap-2 px-3 py-2 bg-dark-bg border border-dark-border rounded-lg hover:bg-dark-hover transition-colors"
+              title={showPurchaseMarkers ? '購入履歴を非表示' : '購入履歴を表示'}
+            >
+              {showPurchaseMarkers ? <Eye size={18} /> : <EyeOff size={18} />}
+              <span className="text-sm">購入履歴</span>
             </button>
             <TimeframeSelector />
             <IndicatorControls />
