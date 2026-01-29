@@ -22,10 +22,7 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps) {
   const [searchQuery, setSearchQuery] = useState('')
   const [allStocks, setAllStocks] = useState<any[]>([])
   const [menuOpenFor, setMenuOpenFor] = useState<number | null>(null)
-  const [collapsedCategories, setCollapsedCategories] = useState<Set<string>>(() => {
-    const saved = localStorage.getItem('collapsed-categories')
-    return saved ? new Set(JSON.parse(saved)) : new Set()
-  })
+  const [activeTab, setActiveTab] = useState<'indices' | 'owned' | 'watchlist'>('owned')
 
   useEffect(() => {
     loadStocks()
@@ -76,19 +73,6 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps) {
   const ownedStocks = filteredStocks.filter(stock => stock.user_category === '保有銘柄')
   const watchlistStocks = filteredStocks.filter(stock => stock.user_category === 'ウォッチリスト')
 
-  const toggleCategory = (category: string) => {
-    setCollapsedCategories(prev => {
-      const newSet = new Set(prev)
-      if (newSet.has(category)) {
-        newSet.delete(category)
-      } else {
-        newSet.add(category)
-      }
-      localStorage.setItem('collapsed-categories', JSON.stringify(Array.from(newSet)))
-      return newSet
-    })
-  }
-
   const handleCategoryChange = async (stockId: number, newCategory: string) => {
     try {
       await api.put(`/stocks/${stockId}`, { user_category: newCategory })
@@ -100,99 +84,72 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps) {
     }
   }
 
-  const renderStockList = (stocks: any[], title: string, categoryKey: string, showMenu: boolean = true) => {
-    const isCollapsed = collapsedCategories.has(categoryKey)
-    
+  const renderStockList = (stocks: any[], showMenu: boolean = true) => {
+    if (stocks.length === 0) {
+      return <div className="text-gray-500 text-sm px-3 py-8 text-center">銘柄がありません</div>
+    }
+
     return (
-      <div className="mb-4">
-        <button
-          onClick={() => toggleCategory(categoryKey)}
-          className="w-full flex items-center justify-between px-3 py-2 hover:bg-dark-hover rounded transition-colors"
-        >
-          <h3 className="text-sm font-semibold text-gray-400">{title}</h3>
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-gray-500">({stocks.length})</span>
-            {isCollapsed ? <ChevronRight size={16} /> : <ChevronDown size={16} />}
-          </div>
-        </button>
-        
-        {!isCollapsed && (
-          <>
-            {stocks.length === 0 ? (
-              <div className="text-gray-500 text-sm px-3 py-2">銘柄がありません</div>
-            ) : (
-              <div className="space-y-1 mt-1">
-                {stocks.map((stock) => (
-                  <div key={stock.id} className="relative group">
-                    <button
-                      onClick={() => setSelectedStock(stock)}
-                      className={clsx(
-                        'w-full text-left px-3 py-2 rounded-lg transition-colors',
-                        selectedStock?.id === stock.id
-                          ? 'bg-blue-600 text-white'
-                          : 'hover:bg-dark-hover text-gray-300'
-                      )}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex-1 min-w-0">
-                          <div className="font-medium truncate">{stock.name}</div>
-                          <div className="text-xs text-gray-400">{stock.symbol}</div>
-                        </div>
-                      </div>
-                    </button>
-                    
-                    {/* カテゴリ変更メニュー */}
-                    {showMenu && (
-                      <>
-                        <button
-                          onClick={() => setMenuOpenFor(menuOpenFor === stock.id ? null : stock.id)}
-                          className={clsx(
-                            'absolute right-2 top-2 p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity',
-                            selectedStock?.id === stock.id ? 'text-white' : 'text-gray-400 hover:text-white'
-                          )}
-                        >
-                          <MoreVertical size={16} />
-                        </button>
-                        
-                        {menuOpenFor === stock.id && (
-                          <div className="absolute right-0 top-10 z-50 bg-dark-surface border border-dark-border rounded-lg shadow-xl py-1 min-w-[150px]">
-                            <button
-                              onClick={() => handleCategoryChange(stock.id, (stock.user_category || stock.category) === '保有銘柄' ? 'ウォッチリスト' : '保有銘柄')}
-                              className="w-full px-4 py-2 text-left text-sm hover:bg-dark-hover transition-colors"
-                            >
-                              {(stock.user_category || stock.category) === '保有銘柄' ? 'ウォッチリストへ' : '保有銘柄へ'}
-                            </button>
-                          </div>
-                        )}
-                      </>
-                    )}
-                  </div>
-                ))}
+      <div className="space-y-1">
+        {stocks.map((stock) => (
+          <div key={stock.id} className="relative group">
+            <button
+              onClick={() => setSelectedStock(stock)}
+              className={clsx(
+                'w-full text-left px-3 py-2 rounded-lg transition-colors',
+                selectedStock?.id === stock.id
+                  ? 'bg-blue-600 text-white'
+                  : 'hover:bg-dark-hover text-gray-300'
+              )}
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex-1 min-w-0">
+                  <div className="font-medium truncate">{stock.name}</div>
+                  <div className="text-xs text-gray-400">{stock.symbol}</div>
+                </div>
               </div>
+            </button>
+
+            {/* カテゴリ変更メニュー */}
+            {showMenu && (
+              <>
+                <button
+                  onClick={() => setMenuOpenFor(menuOpenFor === stock.id ? null : stock.id)}
+                  className={clsx(
+                    'absolute right-2 top-2 p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity',
+                    selectedStock?.id === stock.id ? 'text-white' : 'text-gray-400 hover:text-white'
+                  )}
+                >
+                  <MoreVertical size={16} />
+                </button>
+
+                {menuOpenFor === stock.id && (
+                  <div className="absolute right-0 top-10 z-50 bg-dark-surface border border-dark-border rounded-lg shadow-xl py-1 min-w-[150px]">
+                    <button
+                      onClick={() => handleCategoryChange(stock.id, stock.user_category === '保有銘柄' ? 'ウォッチリスト' : '保有銘柄')}
+                      className="w-full px-4 py-2 text-left text-sm hover:bg-dark-hover transition-colors"
+                    >
+                      {stock.user_category === '保有銘柄' ? '注目銘柄へ' : '保有銘柄へ'}
+                    </button>
+                  </div>
+                )}
+              </>
             )}
-          </>
-        )}
+          </div>
+        ))}
       </div>
     )
   }
 
   return (
     <>
-      {/* トグルボタン */}
-      <button
-        onClick={onToggle}
-        className="fixed top-4 left-4 z-50 p-2 rounded-lg bg-dark-surface border border-dark-border hover:bg-dark-hover transition-colors"
-      >
-        {isOpen ? <X size={20} /> : <Menu size={20} />}
-      </button>
-
       <aside
         className={clsx(
           'fixed left-0 top-0 h-screen w-80 bg-dark-surface border-r border-dark-border transition-transform duration-300 z-40',
           isOpen ? 'translate-x-0' : '-translate-x-full'
         )}
       >
-        <div className="flex flex-col h-full pt-16 pb-4">
+        <div className="flex flex-col h-full pt-4 pb-4">
           {/* ヘッダー */}
           <div className="px-4 mb-4">
             <h1 className="text-2xl font-bold text-white">Stock Chart</h1>
@@ -226,19 +183,54 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps) {
             )}
           </div>
 
+          {/* タブ */}
+          <div className="px-4 mb-4">
+            <div className="flex gap-1 bg-dark-bg p-1 rounded-lg">
+              <button
+                onClick={() => setActiveTab('indices')}
+                className={clsx(
+                  'flex-1 px-3 py-2 rounded text-sm font-medium transition-colors',
+                  activeTab === 'indices'
+                    ? 'bg-blue-600 text-white'
+                    : 'text-gray-400 hover:text-white hover:bg-dark-hover'
+                )}
+              >
+                主要指標
+              </button>
+              <button
+                onClick={() => setActiveTab('owned')}
+                className={clsx(
+                  'flex-1 px-3 py-2 rounded text-sm font-medium transition-colors',
+                  activeTab === 'owned'
+                    ? 'bg-blue-600 text-white'
+                    : 'text-gray-400 hover:text-white hover:bg-dark-hover'
+                )}
+              >
+                保有銘柄
+              </button>
+              <button
+                onClick={() => setActiveTab('watchlist')}
+                className={clsx(
+                  'flex-1 px-3 py-2 rounded text-sm font-medium transition-colors',
+                  activeTab === 'watchlist'
+                    ? 'bg-blue-600 text-white'
+                    : 'text-gray-400 hover:text-white hover:bg-dark-hover'
+                )}
+              >
+                注目銘柄
+              </button>
+            </div>
+          </div>
+
           {/* 銘柄一覧 */}
           <div className="flex-1 overflow-y-auto px-4">
             {loading ? (
               <div className="text-gray-400 text-center py-8">読み込み中...</div>
-            ) : filteredStocks.length === 0 && filteredIndices.length === 0 ? (
-              <div className="text-gray-400 text-center py-8">
-                {searchQuery ? '検索結果がありません' : '銘柄がありません'}
-              </div>
             ) : (
               <>
-                {filteredIndices.length > 0 && renderStockList(filteredIndices, '主要指標', 'indices', false)}
-                {renderStockList(ownedStocks, '保有銘柄', 'owned')}
-                {renderStockList(watchlistStocks, 'ウォッチリスト', 'watchlist')}
+                {activeTab === 'indices' && renderStockList(filteredIndices, false)}
+                {activeTab === 'owned' && renderStockList(ownedStocks, true)}
+                {activeTab === 'watchlist' && renderStockList(watchlistStocks, true)}
               </>
             )}
           </div>
