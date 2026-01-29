@@ -56,8 +56,8 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps) {
 
   // 指標データ（固定）
   const indices = [
-    { id: -1, symbol: '^N225', name: '日経平均株価', category: '主要指標', market: 'Tokyo' },
-    { id: -2, symbol: 'USDJPY=X', name: '米ドル/円', category: '主要指標', market: 'FX' }
+    { id: -1, symbol: '^N225', name: '日経平均株価', sector: '主要指標', market: 'Tokyo' },
+    { id: -2, symbol: 'USDJPY=X', name: '米ドル/円', sector: '主要指標', market: 'FX' }
   ]
 
   const filteredStocks = allStocks.filter(stock => 
@@ -72,8 +72,8 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps) {
     index.symbol.toLowerCase().includes(searchQuery.toLowerCase())
   )
 
-  const ownedStocks = filteredStocks.filter(stock => stock.user_category === '保有銘柄' || stock.category === '保有銘柄')
-  const watchlistStocks = filteredStocks.filter(stock => stock.user_category === 'ウォッチリスト' || stock.category === 'ウォッチリスト')
+  const ownedStocks = filteredStocks.filter(stock => stock.user_category === '保有銘柄')
+  const watchlistStocks = filteredStocks.filter(stock => stock.user_category === 'ウォッチリスト')
 
   const toggleCategory = (category: string) => {
     setCollapsedCategories(prev => {

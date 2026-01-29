@@ -153,10 +153,9 @@ export default function ChartPanel() {
 
           markers.push({
             time: dateKey as Time,
-            position: 'belowBar' as const,
-            color: '#10B981', // Green color for purchases
-            shape: 'arrowUp' as const,
-            text: `購入 ${totalQty}株 @¥${Math.floor(avgPrice).toLocaleString()}`
+            position: 'inBar' as const,
+            color: '#FF9800', // Orange color for purchases
+            shape: 'circle' as const,
           })
         })
       }
@@ -438,7 +437,11 @@ export default function ChartPanel() {
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-2xl font-bold text-white">{selectedStock?.name}</h2>
-            <p className="text-sm text-gray-400">{selectedStock?.symbol}</p>
+            <div className="flex items-center gap-2 text-sm text-gray-400">
+              <span>{selectedStock?.symbol}</span>
+              <span>•</span>
+              <span>{selectedStock?.sector}</span>
+            </div>
           </div>
           
           <div className="flex items-center gap-4">

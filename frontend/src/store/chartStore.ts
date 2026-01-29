@@ -7,7 +7,8 @@ export interface Stock {
   symbol: string
   name: string
   market: string
-  category: string
+  sector: string
+  user_category?: string
 }
 
 export interface Watchlist {
