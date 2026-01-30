@@ -118,14 +118,14 @@ export default function ChartPanel() {
           ...peaks.map(peak => ({
             time: peak.time as Time,
             position: 'aboveBar' as const,
-            color: '#FF9800',
+            color: '#ef5350',
             shape: 'arrowDown' as const,
             text: `¥${Math.floor(peak.high).toLocaleString()}`
           })),
           ...valleys.map(valley => ({
             time: valley.time as Time,
             position: 'belowBar' as const,
-            color: '#2196F3',
+            color: '#26a69a',
             shape: 'arrowUp' as const,
             text: `¥${Math.floor(valley.low).toLocaleString()}`
           }))
@@ -156,6 +156,7 @@ export default function ChartPanel() {
             position: 'inBar' as const,
             color: '#FF9800', // Orange color for purchases
             shape: 'circle' as const,
+            text: `¥${Math.floor(avgPrice).toLocaleString()}`
           })
         })
       }
