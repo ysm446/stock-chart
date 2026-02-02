@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models import Stock, Watchlist, WatchlistStock
+from app.routers.search import convert_sector_code
 from pydantic import BaseModel
 from typing import List
 
@@ -50,11 +51,14 @@ async def create_stock(stock: StockCreate, db: Session = Depends(get_db)):
     if existing:
         raise HTTPException(status_code=400, detail="Symbol already exists")
     
+    # セクターコードを名称に変換
+    sector_name = convert_sector_code(stock.sector)
+
     new_stock = Stock(
         symbol=stock.symbol,
         name=stock.name,
         market=stock.market,
-        sector=stock.sector,
+        sector=sector_name,
         user_category=stock.user_category
     )
     db.add(new_stock)
@@ -117,8 +121,24 @@ async def delete_stock(stock_id: int, db: Session = Depends(get_db)):
     stock = db.query(Stock).filter(Stock.id == stock_id).first()
     if not stock:
         raise HTTPException(status_code=404, detail="Stock not found")
-    
+
     db.delete(stock)
     db.commit()
-    
+
     return {"message": "Stock deleted"}
+
+@router.post("/fix-sectors")
+async def fix_sector_codes(db: Session = Depends(get_db)):
+    """既存銘柄のセクターコードを名称に変換"""
+    stocks = db.query(Stock).all()
+    updated_count = 0
+
+    for stock in stocks:
+        new_sector = convert_sector_code(stock.sector)
+        if new_sector != stock.sector:
+            stock.sector = new_sector
+            updated_count += 1
+
+    db.commit()
+
+    return {"message": f"Updated {updated_count} stocks"}
