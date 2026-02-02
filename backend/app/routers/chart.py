@@ -128,6 +128,9 @@ async def get_chart_data(
                 "value": float(lower)
             })
     
+    # リアルタイム株価を取得
+    realtime_quote = DataFetcher.get_realtime_quote(yahoo_symbol)
+
     response = {
         "symbol": symbol,
         "data": chart_data,
@@ -135,7 +138,8 @@ async def get_chart_data(
         "sma50": sma50_data,
         "sma75": sma75_data,
         "ema": ema_data,
-        "bollinger": bb_data
+        "bollinger": bb_data,
+        "quote": realtime_quote
     }
     
     if redis_client:

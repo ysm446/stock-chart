@@ -19,6 +19,14 @@ export interface IndicatorData {
   value: number
 }
 
+export interface QuoteData {
+  current_price: number
+  previous_close: number
+  change: number
+  change_percent: number
+  market_time?: string
+}
+
 export interface ChartResponse {
   symbol: string
   data: ChartData[]
@@ -29,6 +37,7 @@ export interface ChartResponse {
     middle: IndicatorData[]
     lower: IndicatorData[]
   }
+  quote?: QuoteData
 }
 
 export interface Purchase {

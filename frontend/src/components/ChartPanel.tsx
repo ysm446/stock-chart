@@ -443,13 +443,94 @@ export default function ChartPanel() {
       {/* ヘッダー */}
       <header className="bg-dark-surface border-b border-dark-border px-6 py-4">
         <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-2xl font-bold text-white">{selectedStock?.name}</h2>
-            <div className="flex items-center gap-2 text-sm text-gray-400">
-              <span>{selectedStock?.symbol}</span>
-              <span>•</span>
-              <span>{selectedStock?.sector}</span>
+          <div className="flex items-center gap-6">
+            <div>
+              <h2 className="text-2xl font-bold text-white">{selectedStock?.name}</h2>
+              <div className="flex items-center gap-2 text-sm text-gray-400">
+                <span>{selectedStock?.symbol}</span>
+                <span>•</span>
+                <span>{selectedStock?.sector}</span>
+              </div>
             </div>
+            {/* 現在株価と前日比 */}
+            {(() => {
+              const formatMarketTime = (isoString: string | undefined, fallbackDate?: string) => {
+                if (!isoString && !fallbackDate) return null
+                try {
+                  const date = isoString ? new Date(isoString) : new Date(fallbackDate + 'T15:00:00')
+                  const month = date.getMonth() + 1
+                  const day = date.getDate()
+                  const hours = date.getHours()
+                  const minutes = date.getMinutes().toString().padStart(2, '0')
+                  // 日付のみの場合は時間を表示しない
+                  if (!isoString && fallbackDate) {
+                    return `${month}月${day}日`
+                  }
+                  return `${month}月${day}日 ${hours}:${minutes} JST`
+                } catch {
+                  return null
+                }
+              }
+
+              const quote = fullChartData?.quote
+              if (quote) {
+                // リアルタイム株価データがある場合
+                const isPositive = quote.change >= 0
+                const colorClass = isPositive ? 'text-[#ef5350]' : 'text-[#26a69a]'
+                const sign = isPositive ? '+' : ''
+                const timeStr = formatMarketTime(quote.market_time)
+
+                return (
+                  <div className="flex flex-col">
+                    <div className="flex items-baseline gap-3">
+                      <span className="text-2xl font-bold text-white">
+                        ¥{quote.current_price.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
+                      </span>
+                      <span className={`text-lg font-semibold ${colorClass}`}>
+                        {sign}{quote.change.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
+                        <span className="ml-1">
+                          ({sign}{quote.change_percent.toFixed(2)}%)
+                        </span>
+                      </span>
+                    </div>
+                    {timeStr && (
+                      <span className="text-xs text-gray-500 mt-1">{timeStr}</span>
+                    )}
+                  </div>
+                )
+              } else if (chartData.length >= 2) {
+                // フォールバック: チャートデータから計算
+                const latestData = chartData[chartData.length - 1]
+                const prevData = chartData[chartData.length - 2]
+                const closePrice = latestData.close
+                const change = closePrice - prevData.close
+                const changePercent = (change / prevData.close) * 100
+                const isPositive = change >= 0
+                const colorClass = isPositive ? 'text-[#ef5350]' : 'text-[#26a69a]'
+                const sign = isPositive ? '+' : ''
+                const timeStr = formatMarketTime(undefined, latestData.time)
+
+                return (
+                  <div className="flex flex-col">
+                    <div className="flex items-baseline gap-3">
+                      <span className="text-2xl font-bold text-white">
+                        ¥{closePrice.toLocaleString()}
+                      </span>
+                      <span className={`text-lg font-semibold ${colorClass}`}>
+                        {sign}{change.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
+                        <span className="ml-1">
+                          ({sign}{changePercent.toFixed(2)}%)
+                        </span>
+                      </span>
+                    </div>
+                    {timeStr && (
+                      <span className="text-xs text-gray-500 mt-1">{timeStr}</span>
+                    )}
+                  </div>
+                )
+              }
+              return null
+            })()}
           </div>
 
           <div className="flex items-center gap-4">

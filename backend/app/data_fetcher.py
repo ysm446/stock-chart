@@ -66,3 +66,60 @@ class DataFetcher:
         except Exception as e:
             print(f"Error fetching latest price for {symbol}: {e}")
             return None
+
+    @staticmethod
+    def get_realtime_quote(symbol: str) -> Optional[dict]:
+        """
+        リアルタイム株価情報を取得
+        取引時間中は現在価格、閉場時は最終価格を返す
+        """
+        try:
+            ticker = yf.Ticker(symbol)
+
+            # fast_infoでリアルタイムデータを取得
+            fast_info = ticker.fast_info
+
+            current_price = fast_info.get('lastPrice') or fast_info.get('last_price')
+            previous_close = fast_info.get('previousClose') or fast_info.get('previous_close')
+
+            # 時間情報を取得
+            market_time = None
+            try:
+                info = ticker.info
+                regular_market_time = info.get('regularMarketTime')
+                if regular_market_time:
+                    # UNIXタイムスタンプをISO形式に変換
+                    market_time = datetime.fromtimestamp(regular_market_time).isoformat()
+            except Exception:
+                pass
+
+            if current_price is None:
+                # フォールバック: historyから取得
+                data = ticker.history(period="5d")
+                if data.empty:
+                    return None
+                current_price = float(data['Close'].iloc[-1])
+                if len(data) >= 2:
+                    previous_close = float(data['Close'].iloc[-2])
+                # historyの最新日付を時間情報として使用
+                if market_time is None and not data.empty:
+                    last_date = data.index[-1]
+                    if hasattr(last_date, 'isoformat'):
+                        market_time = last_date.isoformat()
+
+            if current_price and previous_close:
+                change = current_price - previous_close
+                change_percent = (change / previous_close) * 100
+
+                return {
+                    "current_price": float(current_price),
+                    "previous_close": float(previous_close),
+                    "change": float(change),
+                    "change_percent": float(change_percent),
+                    "market_time": market_time
+                }
+
+            return None
+        except Exception as e:
+            print(f"Error fetching realtime quote for {symbol}: {e}")
+            return None
