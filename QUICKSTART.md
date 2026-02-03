@@ -7,10 +7,6 @@
 **Windows:**
 - `start.bat` をダブルクリック
 
-または
-
-- `start.ps1` を右クリック → **PowerShellで実行**
-
 自動的に：
 1. バックエンドサーバーが起動
 2. フロントエンドサーバーが起動  
@@ -72,7 +68,6 @@ npm run dev
 ```
 stock-chart/
 ├── start.bat          ← クリックで起動（Windows）
-├── start.ps1          ← PowerShellで起動
 ├── backend/           ← FastAPI (Python)
 │   └── app/
 ├── frontend/          ← React + Vite
