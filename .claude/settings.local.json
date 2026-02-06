@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(\"C:\\\\Users\\\\kenyo\\\\AppData\\\\Local\\\\Microsoft\\\\WindowsApps\\\\python.exe\" -c:*)"
+    ]
+  }
+}

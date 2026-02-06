@@ -66,6 +66,22 @@ export interface PurchaseUpdate {
   notes?: string
 }
 
+export interface FundamentalData {
+  symbol: string
+  date: string
+  market_cap: number | null
+  per: number | null
+  pbr: number | null
+  eps: number | null
+  bps: number | null
+  roe: number | null
+  dividend_yield: number | null
+  revenue: number | null
+  operating_income: number | null
+  net_income: number | null
+  data_source: string
+}
+
 export const chartApi = {
   async getChartData(symbol: string, timeframe: string): Promise<ChartResponse> {
     const response = await api.get(`/chart/${symbol}`, {
@@ -116,6 +132,13 @@ export const purchaseApi = {
 
   async deletePurchase(id: number): Promise<void> {
     await api.delete(`/purchases/${id}`)
+  }
+}
+
+export const fundamentalApi = {
+  async getFundamental(symbol: string): Promise<FundamentalData> {
+    const response = await api.get(`/fundamentals/${symbol}`)
+    return response.data
   }
 }
 

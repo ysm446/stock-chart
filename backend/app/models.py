@@ -15,6 +15,7 @@ class Stock(Base):
 
     prices = relationship("StockPrice", back_populates="stock")
     purchases = relationship("StockPurchase", back_populates="stock")
+    fundamentals = relationship("StockFundamental", back_populates="stock")
 
 class StockPrice(Base):
     __tablename__ = "stock_prices"
@@ -57,3 +58,32 @@ class StockPurchase(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     stock = relationship("Stock", back_populates="purchases")
+
+class StockFundamental(Base):
+    __tablename__ = "stock_fundamentals"
+
+    id = Column(Integer, primary_key=True, index=True)
+    symbol = Column(String(20), ForeignKey("stocks.symbol"), nullable=False, index=True)
+    date = Column(DateTime, nullable=False, index=True)
+
+    # 基本財務指標
+    market_cap = Column(BigInteger)  # 時価総額
+    per = Column(DECIMAL(10, 2))  # PER (株価収益率)
+    pbr = Column(DECIMAL(10, 2))  # PBR (株価純資産倍率)
+    eps = Column(DECIMAL(12, 2))  # EPS (1株当たり利益)
+    bps = Column(DECIMAL(12, 2))  # BPS (1株当たり純資産)
+    roe = Column(DECIMAL(8, 4))  # ROE (%)
+    dividend_yield = Column(DECIMAL(8, 4))  # 配当利回り (%)
+
+    # 追加データ（オプション）
+    revenue = Column(BigInteger)  # 売上高
+    operating_income = Column(BigInteger)  # 営業利益
+    net_income = Column(BigInteger)  # 純利益
+
+    # メタデータ
+    data_source = Column(String(50), default="yfinance")
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # リレーション
+    stock = relationship("Stock", back_populates="fundamentals")

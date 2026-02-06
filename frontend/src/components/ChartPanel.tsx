@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
 import { createChart, IChartApi, ISeriesApi, CandlestickData, Time, LineData } from 'lightweight-charts'
 import { useChartStore } from '@/store/chartStore'
-import { chartApi, ChartData, purchaseApi } from '@/services/api'
+import { chartApi, ChartData, purchaseApi, fundamentalApi, FundamentalData } from '@/services/api'
 import TimeframeSelector from './TimeframeSelector'
 import IndicatorControls from './IndicatorControls'
+import MetricBadge from './MetricBadge'
 import { Eye, EyeOff } from 'lucide-react'
 
 export default function ChartPanel() {
@@ -14,6 +15,7 @@ export default function ChartPanel() {
   const candlestickSeriesRef = useRef<ISeriesApi<'Candlestick'> | null>(null)
   const volumeSeriesRef = useRef<ISeriesApi<'Histogram'> | null>(null)
   const indicatorSeriesRef = useRef<Map<string, ISeriesApi<'Line'>>>(new Map())
+  const syncEnabledRef = useRef<((enabled: boolean) => void) | null>(null)
   
   const { selectedStock, timeframe, indicators, showPeaks, setShowPeaks, showVolume, purchases, setPurchases, showPurchaseMarkers, setShowPurchaseMarkers } = useChartStore()
   const [loading, setLoading] = useState(false)
@@ -21,6 +23,7 @@ export default function ChartPanel() {
   const [peaks, setPeaks] = useState<ChartData[]>([])
   const [valleys, setValleys] = useState<ChartData[]>([])
   const [fullChartData, setFullChartData] = useState<any>(null)
+  const [fundamental, setFundamental] = useState<FundamentalData | null>(null)
 
   useEffect(() => {
     if (!priceChartContainerRef.current || !volumeChartContainerRef.current) return
@@ -79,49 +82,60 @@ export default function ChartPanel() {
     candlestickSeriesRef.current = candlestickSeries
     volumeSeriesRef.current = volumeSeries
 
-    // 時間軸の同期
-    const syncTimeScales = () => {
-      const priceVisibleRange = priceChart.timeScale().getVisibleRange()
-      if (priceVisibleRange) {
-        volumeChart.timeScale().setVisibleRange(priceVisibleRange)
-      }
-    }
-
+    // 時間軸の同期（出来高非表示時は同期しない）
+    let syncEnabled = true
+    let syncing = false
     priceChart.timeScale().subscribeVisibleTimeRangeChange(() => {
-      const priceVisibleRange = priceChart.timeScale().getVisibleRange()
-      if (priceVisibleRange) {
-        volumeChart.timeScale().setVisibleRange(priceVisibleRange)
+      if (!syncEnabled || syncing) return
+      const range = priceChart.timeScale().getVisibleRange()
+      if (range) {
+        syncing = true
+        volumeChart.timeScale().setVisibleRange(range)
+        syncing = false
       }
     })
 
     volumeChart.timeScale().subscribeVisibleTimeRangeChange(() => {
-      const volumeVisibleRange = volumeChart.timeScale().getVisibleRange()
-      if (volumeVisibleRange) {
-        priceChart.timeScale().setVisibleRange(volumeVisibleRange)
+      if (!syncEnabled || syncing) return
+      const range = volumeChart.timeScale().getVisibleRange()
+      if (range) {
+        syncing = true
+        priceChart.timeScale().setVisibleRange(range)
+        syncing = false
       }
     })
 
-    // リサイズ処理
-    const handleResize = () => {
-      if (priceChartContainerRef.current && priceChartRef.current) {
-        priceChart.applyOptions({
-          width: priceChartContainerRef.current.clientWidth,
-          height: priceChartContainerRef.current.clientHeight,
-        })
-      }
-      if (volumeChartContainerRef.current && volumeChartRef.current) {
-        volumeChart.applyOptions({
-          width: volumeChartContainerRef.current.clientWidth,
-          height: volumeChartContainerRef.current.clientHeight,
-        })
-      }
-    }
+    // syncEnabledをuseEffectから制御できるようにrefに保存
+    syncEnabledRef.current = (enabled: boolean) => { syncEnabled = enabled }
 
-    window.addEventListener('resize', handleResize)
-    handleResize()
+    // リサイズ処理（ResizeObserverでコンテナサイズ変化を検知）
+    let prevPriceSize = { w: 0, h: 0 }
+    let prevVolumeSize = { w: 0, h: 0 }
+    const resizeObserver = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const { width, height } = entry.contentRect
+        const w = Math.floor(width)
+        const h = Math.floor(height)
+        if (w <= 0 || h <= 0) continue
+        if (entry.target === priceChartContainerRef.current) {
+          if (w !== prevPriceSize.w || h !== prevPriceSize.h) {
+            prevPriceSize = { w, h }
+            priceChart.resize(w, h)
+          }
+        } else if (entry.target === volumeChartContainerRef.current) {
+          if (w !== prevVolumeSize.w || h !== prevVolumeSize.h) {
+            prevVolumeSize = { w, h }
+            volumeChart.resize(w, h)
+          }
+        }
+      }
+    })
+
+    resizeObserver.observe(priceChartContainerRef.current)
+    resizeObserver.observe(volumeChartContainerRef.current)
 
     return () => {
-      window.removeEventListener('resize', handleResize)
+      resizeObserver.disconnect()
       priceChart.remove()
       volumeChart.remove()
     }
@@ -131,6 +145,7 @@ export default function ChartPanel() {
     if (selectedStock) {
       loadChartData()
       loadPurchases()
+      loadFundamental()
     }
   }, [selectedStock, timeframe])
 
@@ -197,8 +212,8 @@ export default function ChartPanel() {
 
       // Sort markers by time
       markers.sort((a, b) => {
-        const timeA = typeof a.time === 'string' ? new Date(a.time).getTime() : a.time
-        const timeB = typeof b.time === 'string' ? new Date(b.time).getTime() : b.time
+        const timeA = typeof a.time === 'string' ? new Date(a.time).getTime() : Number(a.time)
+        const timeB = typeof b.time === 'string' ? new Date(b.time).getTime() : Number(b.time)
         return timeA - timeB
       })
 
@@ -208,6 +223,7 @@ export default function ChartPanel() {
 
   useEffect(() => {
     // 出来高表示の切り替え
+    syncEnabledRef.current?.(showVolume)
     if (volumeSeriesRef.current && chartData.length > 0) {
       if (showVolume) {
         const volumeData = chartData.map((item: ChartData) => ({
@@ -216,6 +232,16 @@ export default function ChartPanel() {
           color: item.close >= item.open ? '#ef535080' : '#26a69a80',
         }))
         volumeSeriesRef.current.setData(volumeData)
+
+        // 出来高チャートの時間軸を株価チャートに合わせる
+        setTimeout(() => {
+          if (priceChartRef.current && volumeChartRef.current) {
+            const range = priceChartRef.current.timeScale().getVisibleRange()
+            if (range) {
+              volumeChartRef.current.timeScale().setVisibleRange(range)
+            }
+          }
+        }, 150)
       } else {
         volumeSeriesRef.current.setData([])
       }
@@ -229,6 +255,17 @@ export default function ChartPanel() {
       setPurchases(data)
     } catch (error) {
       console.error('Failed to load purchases:', error)
+    }
+  }
+
+  const loadFundamental = async () => {
+    if (!selectedStock) return
+    try {
+      const data = await fundamentalApi.getFundamental(selectedStock.symbol)
+      setFundamental(data)
+    } catch (error) {
+      console.error('Failed to load fundamental data:', error)
+      setFundamental(null)
     }
   }
 
@@ -568,6 +605,17 @@ export default function ChartPanel() {
               }
               return null
             })()}
+
+            {/* 財務データバッジ */}
+            {fundamental && (
+              <div className="flex gap-3 ml-8">
+                <MetricBadge label="PER" value={fundamental.per} unit="倍" />
+                <MetricBadge label="PBR" value={fundamental.pbr} unit="倍" />
+                <MetricBadge label="ROE" value={fundamental.roe} unit="%" />
+                <MetricBadge label="配当利回り" value={fundamental.dividend_yield} unit="%" />
+                <MetricBadge label="時価総額" value={fundamental.market_cap} />
+              </div>
+            )}
           </div>
 
           <div className="flex items-center gap-4">
@@ -594,19 +642,19 @@ export default function ChartPanel() {
       </header>
 
       {/* チャートエリア */}
-      <div className="flex-1 flex flex-col relative">
+      <div className="flex-1 flex flex-col relative p-4">
         {loading && (
           <div className="absolute inset-0 flex items-center justify-center bg-dark-bg bg-opacity-50 z-10">
             <div className="text-gray-400">データ読み込み中...</div>
           </div>
         )}
         {/* 株価チャート */}
-        <div className="flex-1" style={{ minHeight: 0 }}>
-          <div ref={priceChartContainerRef} className="w-full h-full" />
+        <div className="flex-1 relative" style={{ minHeight: 0 }}>
+          <div ref={priceChartContainerRef} className="absolute inset-0" />
         </div>
         {/* 出来高チャート */}
-        <div className={`border-t border-dark-border transition-all ${showVolume ? 'h-32' : 'h-0'}`}>
-          <div ref={volumeChartContainerRef} className="w-full h-full" />
+        <div className={`relative border-t border-dark-border transition-all ${showVolume ? 'h-32' : 'h-0'}`}>
+          <div ref={volumeChartContainerRef} className="absolute inset-0" />
         </div>
       </div>
     </div>
