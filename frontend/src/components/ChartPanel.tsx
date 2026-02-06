@@ -7,8 +7,10 @@ import IndicatorControls from './IndicatorControls'
 import { Eye, EyeOff } from 'lucide-react'
 
 export default function ChartPanel() {
-  const chartContainerRef = useRef<HTMLDivElement>(null)
-  const chartRef = useRef<IChartApi | null>(null)
+  const priceChartContainerRef = useRef<HTMLDivElement>(null)
+  const volumeChartContainerRef = useRef<HTMLDivElement>(null)
+  const priceChartRef = useRef<IChartApi | null>(null)
+  const volumeChartRef = useRef<IChartApi | null>(null)
   const candlestickSeriesRef = useRef<ISeriesApi<'Candlestick'> | null>(null)
   const volumeSeriesRef = useRef<ISeriesApi<'Histogram'> | null>(null)
   const indicatorSeriesRef = useRef<Map<string, ISeriesApi<'Line'>>>(new Map())
@@ -21,10 +23,9 @@ export default function ChartPanel() {
   const [fullChartData, setFullChartData] = useState<any>(null)
 
   useEffect(() => {
-    if (!chartContainerRef.current) return
+    if (!priceChartContainerRef.current || !volumeChartContainerRef.current) return
 
-    // チャート初期化
-    const chart = createChart(chartContainerRef.current, {
+    const chartOptions = {
       layout: {
         background: { color: '#0f0f0f' },
         textColor: '#9ca3af',
@@ -43,9 +44,12 @@ export default function ChartPanel() {
         borderColor: '#2a2a2a',
         timeVisible: true,
       },
-    })
+    }
 
-    const candlestickSeries = chart.addCandlestickSeries({
+    // 株価チャート初期化
+    const priceChart = createChart(priceChartContainerRef.current, chartOptions)
+
+    const candlestickSeries = priceChart.addCandlestickSeries({
       upColor: '#ef5350',
       downColor: '#26a69a',
       borderUpColor: '#ef5350',
@@ -54,32 +58,61 @@ export default function ChartPanel() {
       wickDownColor: '#26a69a',
     })
 
-    // 出来高ヒストグラムを追加
-    const volumeSeries = chart.addHistogramSeries({
+    // 出来高チャート初期化
+    const volumeChart = createChart(volumeChartContainerRef.current, {
+      ...chartOptions,
+      timeScale: {
+        ...chartOptions.timeScale,
+        visible: false, // 出来高チャートの時間軸は非表示
+      },
+    })
+
+    const volumeSeries = volumeChart.addHistogramSeries({
       color: '#26a69a',
       priceFormat: {
         type: 'volume',
       },
-      priceScaleId: 'volume',
     })
 
-    chart.priceScale('volume').applyOptions({
-      scaleMargins: {
-        top: 0.8,
-        bottom: 0,
-      },
-    })
-
-    chartRef.current = chart
+    priceChartRef.current = priceChart
+    volumeChartRef.current = volumeChart
     candlestickSeriesRef.current = candlestickSeries
     volumeSeriesRef.current = volumeSeries
 
+    // 時間軸の同期
+    const syncTimeScales = () => {
+      const priceVisibleRange = priceChart.timeScale().getVisibleRange()
+      if (priceVisibleRange) {
+        volumeChart.timeScale().setVisibleRange(priceVisibleRange)
+      }
+    }
+
+    priceChart.timeScale().subscribeVisibleTimeRangeChange(() => {
+      const priceVisibleRange = priceChart.timeScale().getVisibleRange()
+      if (priceVisibleRange) {
+        volumeChart.timeScale().setVisibleRange(priceVisibleRange)
+      }
+    })
+
+    volumeChart.timeScale().subscribeVisibleTimeRangeChange(() => {
+      const volumeVisibleRange = volumeChart.timeScale().getVisibleRange()
+      if (volumeVisibleRange) {
+        priceChart.timeScale().setVisibleRange(volumeVisibleRange)
+      }
+    })
+
     // リサイズ処理
     const handleResize = () => {
-      if (chartContainerRef.current && chartRef.current) {
-        chart.applyOptions({
-          width: chartContainerRef.current.clientWidth,
-          height: chartContainerRef.current.clientHeight,
+      if (priceChartContainerRef.current && priceChartRef.current) {
+        priceChart.applyOptions({
+          width: priceChartContainerRef.current.clientWidth,
+          height: priceChartContainerRef.current.clientHeight,
+        })
+      }
+      if (volumeChartContainerRef.current && volumeChartRef.current) {
+        volumeChart.applyOptions({
+          width: volumeChartContainerRef.current.clientWidth,
+          height: volumeChartContainerRef.current.clientHeight,
         })
       }
     }
@@ -89,7 +122,8 @@ export default function ChartPanel() {
 
     return () => {
       window.removeEventListener('resize', handleResize)
-      chart.remove()
+      priceChart.remove()
+      volumeChart.remove()
     }
   }, [])
 
@@ -199,14 +233,14 @@ export default function ChartPanel() {
   }
 
   const loadChartData = async () => {
-    if (!selectedStock || !chartRef.current || !candlestickSeriesRef.current) return
+    if (!selectedStock || !priceChartRef.current || !candlestickSeriesRef.current) return
 
     setLoading(true)
     console.log('Loading chart data for:', selectedStock.symbol, 'timeframe:', timeframe)
     try {
       const data = await chartApi.getChartData(selectedStock.symbol, timeframe)
       console.log('Received chart data:', data)
-      
+
       // ローソク足データをセット
       const candlestickData: CandlestickData<Time>[] = data.data.map((item: ChartData) => ({
         time: item.time as Time,
@@ -246,7 +280,10 @@ export default function ChartPanel() {
       renderIndicators(data)
 
       // チャートを最新データにフィット
-      chartRef.current.timeScale().fitContent()
+      priceChartRef.current.timeScale().fitContent()
+      if (volumeChartRef.current) {
+        volumeChartRef.current.timeScale().fitContent()
+      }
       console.log('Chart loaded successfully')
     } catch (error) {
       console.error('Failed to load chart data:', error)
@@ -306,11 +343,11 @@ export default function ChartPanel() {
   }
 
   const renderIndicators = (data: any) => {
-    if (!chartRef.current) return
+    if (!priceChartRef.current) return
 
     // 既存のインジケーター系列を削除
     indicatorSeriesRef.current.forEach(series => {
-      chartRef.current?.removeSeries(series)
+      priceChartRef.current?.removeSeries(series)
     })
     indicatorSeriesRef.current.clear()
 
@@ -319,7 +356,7 @@ export default function ChartPanel() {
       if (!indicator.visible) return
 
       if (indicator.type === 'sma25' && data.sma25) {
-        const sma25Series = chartRef.current!.addLineSeries({
+        const sma25Series = priceChartRef.current!.addLineSeries({
           color: '#FFD600',
           lineWidth: 1,
           title: 'SMA(25)',
@@ -336,7 +373,7 @@ export default function ChartPanel() {
       }
 
       if (indicator.type === 'sma50' && data.sma50) {
-        const sma50Series = chartRef.current!.addLineSeries({
+        const sma50Series = priceChartRef.current!.addLineSeries({
           color: '#FF6D00',
           lineWidth: 1,
           title: 'SMA(50)',
@@ -353,7 +390,7 @@ export default function ChartPanel() {
       }
 
       if (indicator.type === 'sma75' && data.sma75) {
-        const sma75Series = chartRef.current!.addLineSeries({
+        const sma75Series = priceChartRef.current!.addLineSeries({
           color: '#00C853',
           lineWidth: 1,
           title: 'SMA(75)',
@@ -370,7 +407,7 @@ export default function ChartPanel() {
       }
 
       if (indicator.type === 'ema' && data.ema) {
-        const emaSeries = chartRef.current!.addLineSeries({
+        const emaSeries = priceChartRef.current!.addLineSeries({
           color: '#FFD600',
           lineWidth: 2,
           title: `EMA(${indicator.period})`,
@@ -388,7 +425,7 @@ export default function ChartPanel() {
 
       if (indicator.type === 'bollinger' && data.bollinger) {
         // 上限バンド
-        const upperSeries = chartRef.current!.addLineSeries({
+        const upperSeries = priceChartRef.current!.addLineSeries({
           color: '#00BCD4',
           lineWidth: 1,
           title: 'BB Upper',
@@ -404,7 +441,7 @@ export default function ChartPanel() {
         indicatorSeriesRef.current.set('bb_upper', upperSeries)
 
         // 中央線
-        const middleSeries = chartRef.current!.addLineSeries({
+        const middleSeries = priceChartRef.current!.addLineSeries({
           color: '#00BCD4',
           lineWidth: 1,
           title: 'BB Middle',
@@ -420,7 +457,7 @@ export default function ChartPanel() {
         indicatorSeriesRef.current.set('bb_middle', middleSeries)
 
         // 下限バンド
-        const lowerSeries = chartRef.current!.addLineSeries({
+        const lowerSeries = priceChartRef.current!.addLineSeries({
           color: '#00BCD4',
           lineWidth: 1,
           title: 'BB Lower',
@@ -557,13 +594,20 @@ export default function ChartPanel() {
       </header>
 
       {/* チャートエリア */}
-      <div className="flex-1 relative">
+      <div className="flex-1 flex flex-col relative">
         {loading && (
           <div className="absolute inset-0 flex items-center justify-center bg-dark-bg bg-opacity-50 z-10">
             <div className="text-gray-400">データ読み込み中...</div>
           </div>
         )}
-        <div ref={chartContainerRef} className="w-full h-full" />
+        {/* 株価チャート */}
+        <div className="flex-1" style={{ minHeight: 0 }}>
+          <div ref={priceChartContainerRef} className="w-full h-full" />
+        </div>
+        {/* 出来高チャート */}
+        <div className={`border-t border-dark-border transition-all ${showVolume ? 'h-32' : 'h-0'}`}>
+          <div ref={volumeChartContainerRef} className="w-full h-full" />
+        </div>
       </div>
     </div>
   )
