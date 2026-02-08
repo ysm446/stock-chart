@@ -112,3 +112,66 @@ class DataFetcher:
         except Exception as e:
             print(f"Error fetching realtime quote for {symbol}: {e}")
             return None
+
+    @staticmethod
+    def get_company_info(symbol: str) -> Optional[dict]:
+        """
+        企業情報を取得
+
+        Args:
+            symbol: 銘柄コード（例: '7203.T'）
+
+        Returns:
+            企業情報の辞書、または取得失敗時はNone
+        """
+        try:
+            ticker = yf.Ticker(symbol)
+            info = ticker.info
+
+            if not info:
+                print(f"[{symbol}] No company info available")
+                return None
+
+            # infoが空または無効なデータかチェック
+            # 最低限、long_nameかbusiness_summaryのどちらかが必要
+            if not info.get("longName") and not info.get("longBusinessSummary"):
+                print(f"[{symbol}] No valid company info available (empty or invalid data)")
+                print(f"[{symbol}] Available keys: {list(info.keys())[:10]}")  # デバッグ用
+                return None
+
+            # デバッグ: すべてのキーを表示（日本語フィールドがあるか確認）
+            print(f"\n[{symbol}] Checking for Japanese fields:")
+            for key in sorted(info.keys()):
+                value = info.get(key)
+                # 文字列で日本語が含まれているか、name/address/descriptionを含むキーをチェック
+                if isinstance(value, str) and len(value) > 0:
+                    if 'name' in key.lower() or 'address' in key.lower() or 'description' in key.lower() or 'summary' in key.lower():
+                        print(f"  {key}: {value[:100]}...")
+
+            # 必要な情報を抽出
+            company_data = {
+                "symbol": symbol,
+                "long_name": info.get("longName"),
+                "industry": info.get("industry"),
+                "sector": info.get("sector"),
+                "business_summary": info.get("longBusinessSummary"),
+                "website": info.get("website"),
+                "full_time_employees": info.get("fullTimeEmployees"),
+                "city": info.get("city"),
+                "state": info.get("state"),
+                "country": info.get("country"),
+                "address": info.get("address1"),
+                "zip_code": info.get("zip"),
+                "phone": info.get("phone"),
+                "previous_close": info.get("previousClose"),
+                "market_cap": info.get("marketCap"),
+            }
+
+            print(f"[{symbol}] Company info fetched successfully")
+            print(f"[{symbol}] long_name: {company_data.get('long_name')}")
+            print(f"[{symbol}] industry: {company_data.get('industry')}")
+            return company_data
+
+        except Exception as e:
+            print(f"Error fetching company info for {symbol}: {e}")
+            return None

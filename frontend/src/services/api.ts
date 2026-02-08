@@ -82,6 +82,28 @@ export interface FundamentalData {
   data_source: string
 }
 
+export interface CompanyInfo {
+  id: number
+  symbol: string
+  long_name: string | null
+  industry: string | null
+  sector: string | null
+  business_summary: string | null
+  website: string | null
+  full_time_employees: number | null
+  city: string | null
+  state: string | null
+  country: string | null
+  address: string | null
+  zip_code: string | null
+  phone: string | null
+  previous_close: number | null
+  market_cap: number | null
+  data_source: string
+  created_at: string
+  updated_at: string
+}
+
 export const chartApi = {
   async getChartData(symbol: string, timeframe: string): Promise<ChartResponse> {
     const response = await api.get(`/chart/${symbol}`, {
@@ -138,6 +160,18 @@ export const purchaseApi = {
 export const fundamentalApi = {
   async getFundamental(symbol: string): Promise<FundamentalData> {
     const response = await api.get(`/fundamentals/${symbol}`)
+    return response.data
+  }
+}
+
+export const companyApi = {
+  async getCompanyInfo(symbol: string): Promise<CompanyInfo> {
+    const response = await api.get(`/company/${symbol}`)
+    return response.data
+  },
+
+  async refreshCompanyInfo(symbol: string): Promise<CompanyInfo> {
+    const response = await api.post(`/company/${symbol}/refresh`)
     return response.data
   }
 }

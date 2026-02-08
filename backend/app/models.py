@@ -87,3 +87,39 @@ class StockFundamental(Base):
 
     # リレーション
     stock = relationship("Stock", back_populates="fundamentals")
+
+class CompanyInfo(Base):
+    __tablename__ = "company_info"
+
+    id = Column(Integer, primary_key=True, index=True)
+    symbol = Column(String(20), ForeignKey("stocks.symbol"), unique=True, nullable=False, index=True)
+
+    # 基本情報
+    long_name = Column(String(255))  # 正式名称
+    industry = Column(String(100))  # 業種
+    sector = Column(String(100))  # セクター
+    business_summary = Column(String(5000))  # 事業概要
+
+    # 企業情報
+    website = Column(String(255))  # ウェブサイト
+    full_time_employees = Column(Integer)  # 従業員数
+
+    # 所在地
+    city = Column(String(100))  # 市区町村
+    state = Column(String(100))  # 都道府県
+    country = Column(String(100))  # 国
+    address = Column(String(255))  # 住所
+    zip_code = Column(String(20))  # 郵便番号
+    phone = Column(String(50))  # 電話番号
+
+    # その他
+    previous_close = Column(DECIMAL(12, 2))  # 前日終値
+    market_cap = Column(BigInteger)  # 時価総額
+
+    # メタデータ
+    data_source = Column(String(50), default="yfinance")
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # リレーション
+    stock = relationship("Stock")
