@@ -142,3 +142,30 @@ async def fix_sector_codes(db: Session = Depends(get_db)):
     db.commit()
 
     return {"message": f"Updated {updated_count} stocks"}
+
+@router.post("/fix-symbols")
+async def fix_stock_symbols(db: Session = Depends(get_db)):
+    """日本株のシンボルに .T サフィックスを追加"""
+    stocks = db.query(Stock).all()
+    updated_count = 0
+    updates = []
+
+    for stock in stocks:
+        # .T がついていない場合は追加
+        if not stock.symbol.endswith('.T'):
+            old_symbol = stock.symbol
+            stock.symbol = f"{stock.symbol}.T"
+            updated_count += 1
+            updates.append({
+                "id": stock.id,
+                "old_symbol": old_symbol,
+                "new_symbol": stock.symbol,
+                "name": stock.name
+            })
+
+    db.commit()
+
+    return {
+        "message": f"Updated {updated_count} stocks",
+        "updates": updates
+    }

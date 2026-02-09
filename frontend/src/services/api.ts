@@ -176,4 +176,41 @@ export const companyApi = {
   }
 }
 
+export interface PortfolioSummary {
+  total_value: number
+  total_cost: number
+  total_profit_loss: number
+  profit_loss_rate: number
+  total_annual_dividend: number
+}
+
+export interface Holding {
+  stock_id: number
+  symbol: string
+  name: string
+  sector: string
+  total_quantity: number
+  average_price: number
+  total_cost: number
+  current_price: number
+  current_value: number
+  profit_loss: number
+  profit_loss_rate: number
+  dividend_yield: number
+  annual_dividend: number
+  weight: number
+}
+
+export interface PortfolioData {
+  summary: PortfolioSummary
+  holdings: Holding[]
+}
+
+export const portfolioApi = {
+  async getPortfolioSummary(): Promise<PortfolioData> {
+    const response = await api.get('/portfolio/summary')
+    return response.data
+  }
+}
+
 export default api

@@ -147,7 +147,7 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps) {
     <>
       <aside
         className={clsx(
-          'fixed left-0 top-0 h-screen w-80 bg-dark-surface border-r border-dark-border transition-transform duration-300 z-40',
+          'fixed left-[60px] top-0 h-screen w-80 bg-dark-surface border-r border-dark-border transition-transform duration-300 z-40',
           isOpen ? 'translate-x-0' : '-translate-x-full'
         )}
       >
@@ -292,7 +292,7 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps) {
       {/* 購入履歴パネル */}
       <aside
         className={clsx(
-          'fixed left-80 top-0 h-screen w-80 bg-dark-surface border-r border-dark-border transition-transform duration-300 z-30 overflow-y-auto',
+          'fixed left-[380px] top-0 h-screen w-80 bg-dark-surface border-r border-dark-border transition-transform duration-300 z-30 overflow-y-auto',
           showPurchasePanel && selectedStock ? 'translate-x-0' : '-translate-x-full'
         )}
       >
@@ -321,7 +321,7 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps) {
       {/* 企業情報パネル */}
       <aside
         className={clsx(
-          'fixed left-80 top-0 h-screen w-80 bg-dark-surface border-r border-dark-border transition-transform duration-300 z-30 overflow-y-auto',
+          'fixed left-[380px] top-0 h-screen w-80 bg-dark-surface border-r border-dark-border transition-transform duration-300 z-30 overflow-y-auto',
           showCompanyPanel && selectedStock ? 'translate-x-0' : '-translate-x-full'
         )}
       >

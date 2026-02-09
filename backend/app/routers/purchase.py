@@ -92,6 +92,10 @@ async def create_purchase(
     )
 
     db.add(new_purchase)
+
+    # 重要: 銘柄を自動的に「保有銘柄」に分類
+    stock.user_category = "保有銘柄"
+
     db.commit()
     db.refresh(new_purchase)
 

@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.routers import chart, watchlist, stock, search, purchase, fundamental, company
+from app.routers import chart, watchlist, stock, search, purchase, fundamental, company, portfolio
 from app.database import init_db
 
 app = FastAPI(
@@ -26,6 +26,7 @@ app.include_router(search.router, prefix="/api", tags=["search"])
 app.include_router(purchase.router, prefix="/api/purchases", tags=["purchases"])
 app.include_router(fundamental.router, prefix="/api/fundamentals", tags=["fundamentals"])
 app.include_router(company.router, prefix="/api/company", tags=["company"])
+app.include_router(portfolio.router, prefix="/api/portfolio", tags=["portfolio"])
 
 @app.on_event("startup")
 async def startup_event():
