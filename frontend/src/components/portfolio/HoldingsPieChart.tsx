@@ -5,27 +5,52 @@ interface HoldingsPieChartProps {
   holdings: Holding[]
 }
 
-// スタイリッシュなカラーパレット（落ち着いたトーン）
-const COLORS = [
-  '#26a69a', // teal (メインカラー)
-  '#4fc3f7', // light blue
-  '#66bb6a', // green
-  '#5c6bc0', // indigo
-  '#78909c', // blue grey
-  '#9575cd', // deep purple
-  '#7986cb', // indigo light
-  '#4db6ac', // teal light
-  '#81c784', // green light
-  '#64b5f6', // blue light
-]
-
 export default function HoldingsPieChart({ holdings }: HoldingsPieChartProps) {
+  // 保有割合の大きい順にソート
+  const sortedHoldings = [...holdings].sort((a, b) => b.weight - a.weight)
+
   // 円グラフ用のデータを準備
-  const chartData = holdings.map((holding) => ({
+  const chartData = sortedHoldings.map((holding) => ({
     name: holding.name,
     value: holding.current_value,
     weight: holding.weight,
   }))
+
+  // キーカラーの色相を定義
+  const keyHues = [
+    210, // ブルー
+    330, // ピンク
+    180, // シアン
+    270, // パープル
+  ]
+
+  // カラーバリエーションを生成
+  const generateColorVariations = () => {
+    const variations: string[] = []
+
+    keyHues.forEach((hue) => {
+      // 各色相について、明度の異なる4つのバリエーションを作成
+      // 明度が低いほど彩度を高く
+      const lightnessLevels = [
+        { lightness: 35, saturation: 80 }, // 非常に暗い・彩度非常に高
+        { lightness: 45, saturation: 75 }, // 暗い・彩度高
+        { lightness: 55, saturation: 65 }, // 中間
+        { lightness: 65, saturation: 55 }, // 明るい・彩度低
+      ]
+
+      lightnessLevels.forEach(({ lightness, saturation }) => {
+        variations.push(`hsl(${hue}, ${saturation}%, ${lightness}%)`)
+      })
+    })
+
+    return variations
+  }
+
+  // カラーバリエーションを生成
+  const colorVariations = generateColorVariations()
+
+  // 各銘柄に色を順番に割り当て（保有割合の大きい順）
+  const colors = chartData.map((_, index) => colorVariations[index % colorVariations.length])
 
   // カスタムツールチップ
   const CustomTooltip = ({ active, payload }: any) => {
@@ -114,7 +139,7 @@ export default function HoldingsPieChart({ holdings }: HoldingsPieChartProps) {
             {chartData.map((entry, index) => (
               <Cell
                 key={`cell-${index}`}
-                fill={COLORS[index % COLORS.length]}
+                fill={colors[index]}
                 stroke="none"
               />
             ))}
