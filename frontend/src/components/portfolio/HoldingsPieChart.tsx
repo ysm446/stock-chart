@@ -1,4 +1,4 @@
-import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts'
+import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer, Label } from 'recharts'
 import type { Holding } from '@/store/portfolioStore'
 
 interface HoldingsPieChartProps {
@@ -134,15 +134,27 @@ export default function HoldingsPieChart({ holdings }: HoldingsPieChartProps) {
             labelLine={renderLabelLine}
             label={renderLabel}
             outerRadius={130}
+            innerRadius={100}
             dataKey="value"
           >
-            {chartData.map((entry, index) => (
+            {chartData.map((_, index) => (
               <Cell
                 key={`cell-${index}`}
                 fill={colors[index]}
                 stroke="none"
               />
             ))}
+            <Label
+              position="center"
+              content={({ viewBox }) => {
+                const { cx, cy } = viewBox as { cx: number; cy: number }
+                return (
+                  <text x={cx} y={cy} textAnchor="middle" dominantBaseline="central">
+                    <tspan x={cx} dy="-0.4em" fontSize="15" fontWeight="bold" fill="white">保有割合</tspan>
+                  </text>
+                )
+              }}
+            />
           </Pie>
           <Tooltip content={<CustomTooltip />} />
           <Legend
