@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app.database import get_db
-from app.models import Stock, Watchlist, WatchlistStock
+from app.models import Stock, Watchlist, WatchlistStock, StockPrice, StockPurchase, StockFundamental, CompanyInfo
 from app.routers.search import convert_sector_code
 from pydantic import BaseModel
 from typing import List
@@ -46,16 +46,19 @@ async def get_all_stocks(db: Session = Depends(get_db)):
 @router.post("/", response_model=StockResponse, status_code=201)
 async def create_stock(stock: StockCreate, db: Session = Depends(get_db)):
     """新規銘柄追加"""
+    # 日本株シンボルに .T を自動付与
+    symbol = stock.symbol if stock.symbol.endswith('.T') else f"{stock.symbol}.T"
+
     # 既存チェック
-    existing = db.query(Stock).filter(Stock.symbol == stock.symbol).first()
+    existing = db.query(Stock).filter(Stock.symbol == symbol).first()
     if existing:
         raise HTTPException(status_code=400, detail="Symbol already exists")
-    
+
     # セクターコードを名称に変換
     sector_name = convert_sector_code(stock.sector)
 
     new_stock = Stock(
-        symbol=stock.symbol,
+        symbol=symbol,
         name=stock.name,
         market=stock.market,
         sector=sector_name,
@@ -121,6 +124,15 @@ async def delete_stock(stock_id: int, db: Session = Depends(get_db)):
     stock = db.query(Stock).filter(Stock.id == stock_id).first()
     if not stock:
         raise HTTPException(status_code=404, detail="Stock not found")
+
+    symbol = stock.symbol
+
+    # 関連レコードを先に削除（外部キー制約を回避）
+    db.query(WatchlistStock).filter(WatchlistStock.stock_id == stock_id).delete()
+    db.query(StockPurchase).filter(StockPurchase.stock_id == stock_id).delete()
+    db.query(StockPrice).filter(StockPrice.symbol == symbol).delete()
+    db.query(StockFundamental).filter(StockFundamental.symbol == symbol).delete()
+    db.query(CompanyInfo).filter(CompanyInfo.symbol == symbol).delete()
 
     db.delete(stock)
     db.commit()

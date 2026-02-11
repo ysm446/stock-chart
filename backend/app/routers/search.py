@@ -119,7 +119,7 @@ async def search_stocks(q: str):
             query_lower in name_jp.lower() or 
             query_lower in name_en.lower()):
             results.append({
-                "symbol": code,
+                "symbol": f"{code}.T" if not code.endswith('.T') else code,
                 "name": name_jp,
                 "market": "東証",
                 "currency": "JPY",
