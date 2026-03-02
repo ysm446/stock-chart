@@ -4,6 +4,7 @@ import { usePortfolioStore } from '@/store/portfolioStore'
 import { useChartStore } from '@/store/chartStore'
 import { portfolioApi } from '@/services/api'
 import HoldingsPieChart from '@/components/portfolio/HoldingsPieChart'
+import PortfolioTrendChart from '@/components/portfolio/PortfolioTrendChart'
 
 export default function PortfolioPage() {
   const navigate = useNavigate()
@@ -123,6 +124,9 @@ export default function PortfolioPage() {
             </p>
           </div>
         </div>
+
+        {/* 評価額推移グラフ */}
+        <PortfolioTrendChart />
 
         {/* 保有割合円グラフ */}
         <HoldingsPieChart holdings={holdings} />

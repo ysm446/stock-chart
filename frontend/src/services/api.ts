@@ -206,9 +206,23 @@ export interface PortfolioData {
   holdings: Holding[]
 }
 
+export interface PortfolioHistoryPoint {
+  date: string
+  total_value: number
+}
+
+export interface PortfolioHistory {
+  history: PortfolioHistoryPoint[]
+}
+
 export const portfolioApi = {
   async getPortfolioSummary(): Promise<PortfolioData> {
     const response = await api.get('/portfolio/summary')
+    return response.data
+  },
+
+  async getPortfolioHistory(period: string = '1w'): Promise<PortfolioHistory> {
+    const response = await api.get('/portfolio/history', { params: { period } })
     return response.data
   }
 }

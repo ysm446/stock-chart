@@ -92,7 +92,7 @@ class PortfolioService:
                 "profit_loss": round(profit_loss, 2),
                 "profit_loss_rate": round(profit_loss_rate, 2),
                 "dividend_yield": round(dividend_yield, 2),
-                "annual_dividend": round(annual_dividend, 2),
+                "annual_dividend": int(annual_dividend),
                 "weight": 0.0  # 後で計算
             })
 
@@ -109,10 +109,94 @@ class PortfolioService:
             "total_cost": round(total_cost, 2),
             "total_profit_loss": round(total_profit_loss, 2),
             "profit_loss_rate": round(profit_loss_rate, 2),
-            "total_annual_dividend": round(total_annual_dividend, 2)
+            "total_annual_dividend": int(total_annual_dividend)
         }
 
         return {
             "summary": summary,
             "holdings": holdings
         }
+
+    # 期間ごとの yfinance period と表示する最大営業日数のマッピング
+    PERIOD_CONFIG = {
+        "1w":  ("1mo",  7),
+        "1mo": ("1mo",  None),
+        "3mo": ("3mo",  None),
+        "6mo": ("6mo",  None),
+        "1y":  ("1y",   None),
+    }
+
+    @staticmethod
+    def calculate_portfolio_history(db: Session, period: str = "1w") -> Dict:
+        """
+        保有銘柄の合計評価額の推移を計算します。
+
+        Args:
+            period: "1w" | "1mo" | "3mo" | "6mo" | "1y"
+
+        Returns:
+            {
+                "history": [{"date": "YYYY-MM-DD", "total_value": float}, ...]
+            }
+        """
+        yf_period, tail_n = PortfolioService.PERIOD_CONFIG.get(
+            period, ("1mo", 7)
+        )
+
+        # 購入履歴から保有銘柄と保有数を取得
+        purchase_groups = db.query(
+            StockPurchase.stock_id,
+            func.sum(StockPurchase.quantity).label('total_quantity')
+        ).group_by(StockPurchase.stock_id).all()
+
+        if not purchase_groups:
+            return {"history": []}
+
+        # シンボル -> 保有数 のマップを構築
+        stock_map = {}
+        for group in purchase_groups:
+            stock = db.query(Stock).filter(Stock.id == group.stock_id).first()
+            if stock:
+                stock_map[stock.symbol] = int(group.total_quantity)
+
+        if not stock_map:
+            return {"history": []}
+
+        # 各銘柄の価格履歴を取得
+        all_dates = set()
+        price_data = {}  # symbol -> {date_str -> price}
+
+        for symbol in stock_map:
+            df = DataFetcher.fetch_stock_data(symbol, period=yf_period, interval="1d")
+            if df is not None and not df.empty:
+                if tail_n is not None:
+                    df = df.tail(tail_n)
+                price_data[symbol] = {}
+                for _, row in df.iterrows():
+                    date_val = row['date']
+                    if hasattr(date_val, 'strftime'):
+                        date_str = date_val.strftime('%Y-%m-%d')
+                    else:
+                        date_str = str(date_val)[:10]
+                    price_data[symbol][date_str] = float(row['close'])
+                    all_dates.add(date_str)
+
+        if not all_dates:
+            return {"history": []}
+
+        # 各日付のポートフォリオ合計評価額を計算
+        history = []
+        for date in sorted(all_dates):
+            total_value = 0.0
+            has_data = False
+            for symbol, quantity in stock_map.items():
+                if symbol in price_data and date in price_data[symbol]:
+                    total_value += price_data[symbol][date] * quantity
+                    has_data = True
+            if has_data:
+                history.append({
+                    "date": date,
+                    "total_value": round(total_value, 2)
+                })
+
+        return {"history": history}

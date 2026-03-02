@@ -16,3 +16,14 @@ async def get_portfolio_summary(db: Session = Depends(get_db)):
     """
     result = PortfolioService.calculate_holdings(db)
     return result
+
+@router.get("/history")
+async def get_portfolio_history(period: str = "1w", db: Session = Depends(get_db)):
+    """
+    ポートフォリオ評価額の推移データ取得
+
+    - period: "1w" | "1mo" | "3mo" | "6mo" | "1y"
+    - history: [{date, total_value}, ...]
+    """
+    result = PortfolioService.calculate_portfolio_history(db, period=period)
+    return result
