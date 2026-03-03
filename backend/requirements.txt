@@ -8,7 +8,6 @@ sqlalchemy>=2.0.25
 
 # Data & Analysis
 pandas>=2.2.0
-pandas-ta>=0.4.71b0
 numpy>=1.26.3
 yfinance>=0.2.35
 

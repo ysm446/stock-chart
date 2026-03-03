@@ -19,48 +19,76 @@ function getBackendRoot() {
   return path.join(__dirname, '..', 'backend');
 }
 
-function getPythonCommand(backendRoot) {
+function getPythonCommands(backendRoot) {
+  const commands = [];
+
   if (process.env.BACKEND_PYTHON) {
-    return process.env.BACKEND_PYTHON;
+    commands.push(process.env.BACKEND_PYTHON);
   }
 
   if (process.platform === 'win32') {
     const venvPython = path.join(backendRoot, 'venv', 'Scripts', 'python.exe');
     if (fs.existsSync(venvPython)) {
-      return venvPython;
+      commands.push(venvPython);
     }
-    return 'python';
+    commands.push('py', 'python');
+  } else {
+    const venvPython = path.join(backendRoot, 'venv', 'bin', 'python');
+    if (fs.existsSync(venvPython)) {
+      commands.push(venvPython);
+    }
+    commands.push('python3', 'python');
   }
 
-  const venvPython = path.join(backendRoot, 'venv', 'bin', 'python');
-  if (fs.existsSync(venvPython)) {
-    return venvPython;
-  }
-  return 'python3';
+  return [...new Set(commands)];
 }
 
 function startBackend() {
   const backendRoot = getBackendRoot();
-  const pythonCommand = getPythonCommand(backendRoot);
   const args = ['-m', 'uvicorn', 'app.main:app', '--host', '127.0.0.1', '--port', BACKEND_PORT];
+  const pythonCommands = getPythonCommands(backendRoot);
+  let commandIndex = 0;
 
-  backendProcess = spawn(pythonCommand, args, {
-    cwd: backendRoot,
-    windowsHide: true,
-    env: { ...process.env, PYTHONUNBUFFERED: '1' },
-  });
+  const tryStart = () => {
+    if (commandIndex >= pythonCommands.length) {
+      process.stderr.write('[backend] failed to launch: no usable Python command was found.\n');
+      backendProcess = null;
+      return;
+    }
 
-  backendProcess.stdout?.on('data', (data) => {
-    process.stdout.write(`[backend] ${data}`);
-  });
-  backendProcess.stderr?.on('data', (data) => {
-    process.stderr.write(`[backend] ${data}`);
-  });
-  backendProcess.on('exit', (code, signal) => {
-    const message = `[backend] exited code=${code ?? 'null'} signal=${signal ?? 'null'}\n`;
-    process.stdout.write(message);
-    backendProcess = null;
-  });
+    const pythonCommand = pythonCommands[commandIndex];
+    process.stdout.write(`[backend] launching with: ${pythonCommand}\n`);
+
+    backendProcess = spawn(pythonCommand, args, {
+      cwd: backendRoot,
+      windowsHide: true,
+      env: { ...process.env, PYTHONUNBUFFERED: '1' },
+    });
+
+    backendProcess.stdout?.on('data', (data) => {
+      process.stdout.write(`[backend] ${data}`);
+    });
+    backendProcess.stderr?.on('data', (data) => {
+      process.stderr.write(`[backend] ${data}`);
+    });
+    backendProcess.on('error', (error) => {
+      if (error?.code === 'ENOENT') {
+        process.stderr.write(`[backend] Python command not found: ${pythonCommand}\n`);
+        commandIndex += 1;
+        tryStart();
+        return;
+      }
+      process.stderr.write(`[backend] failed to spawn process: ${error}\n`);
+      backendProcess = null;
+    });
+    backendProcess.on('exit', (code, signal) => {
+      const message = `[backend] exited code=${code ?? 'null'} signal=${signal ?? 'null'}\n`;
+      process.stdout.write(message);
+      backendProcess = null;
+    });
+  };
+
+  tryStart();
 }
 
 function stopBackend() {
