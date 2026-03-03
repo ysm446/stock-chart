@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react'
 import { Building2, Globe, Users, MapPin, Phone, RefreshCw } from 'lucide-react'
-import { companyApi, CompanyInfo as CompanyInfoType } from '@/services/api'
+import { companyApi, CompanyInfo as CompanyInfoType, fundamentalApi, FundamentalData } from '@/services/api'
 import { useChartStore } from '@/store/chartStore'
+import MetricBadge from './MetricBadge'
 
 export default function CompanyInfo() {
   const { selectedStock } = useChartStore()
   const [companyInfo, setCompanyInfo] = useState<CompanyInfoType | null>(null)
+  const [fundamental, setFundamental] = useState<FundamentalData | null>(null)
   const [loading, setLoading] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -13,6 +15,7 @@ export default function CompanyInfo() {
   useEffect(() => {
     if (selectedStock) {
       loadCompanyInfo()
+      loadFundamental()
     }
   }, [selectedStock])
 
@@ -41,11 +44,23 @@ export default function CompanyInfo() {
     try {
       const data = await companyApi.refreshCompanyInfo(selectedStock.symbol)
       setCompanyInfo(data)
+      await loadFundamental()
     } catch (err) {
       console.error('Failed to refresh company info:', err)
       setError('企業情報の更新に失敗しました')
     } finally {
       setRefreshing(false)
+    }
+  }
+
+  const loadFundamental = async () => {
+    if (!selectedStock) return
+    try {
+      const data = await fundamentalApi.getFundamental(selectedStock.symbol)
+      setFundamental(data)
+    } catch (err) {
+      console.error('Failed to load fundamental info:', err)
+      setFundamental(null)
     }
   }
 
@@ -109,6 +124,20 @@ export default function CompanyInfo() {
         <RefreshCw size={16} className={refreshing ? 'animate-spin' : ''} />
         <span>{refreshing ? '更新中...' : '情報を更新'}</span>
       </button>
+
+      {/* 指標情報 */}
+      {fundamental && (
+        <div className="bg-dark-bg border border-dark-border rounded-lg p-3">
+          <h3 className="text-sm font-semibold text-white mb-3">指標情報</h3>
+          <div className="grid grid-cols-1 gap-2">
+            <MetricBadge label="PER" value={fundamental.per} unit="倍" />
+            <MetricBadge label="PBR" value={fundamental.pbr} unit="倍" />
+            <MetricBadge label="ROE" value={fundamental.roe} unit="%" />
+            <MetricBadge label="配当利回り" value={fundamental.dividend_yield} unit="%" />
+            <MetricBadge label="時価総額" value={fundamental.market_cap} />
+          </div>
+        </div>
+      )}
 
       {/* 基本情報 */}
       <div className="bg-dark-bg border border-dark-border rounded-lg p-3">

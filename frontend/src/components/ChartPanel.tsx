@@ -1,10 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { createChart, IChartApi, ISeriesApi, CandlestickData, Time, LineData } from 'lightweight-charts'
 import { useChartStore } from '@/store/chartStore'
-import { chartApi, ChartData, purchaseApi, fundamentalApi, FundamentalData } from '@/services/api'
+import { chartApi, ChartData, purchaseApi } from '@/services/api'
 import TimeframeSelector from './TimeframeSelector'
 import IndicatorControls from './IndicatorControls'
-import MetricBadge from './MetricBadge'
 import { Eye, EyeOff } from 'lucide-react'
 
 export default function ChartPanel() {
@@ -23,7 +22,6 @@ export default function ChartPanel() {
   const [peaks, setPeaks] = useState<ChartData[]>([])
   const [valleys, setValleys] = useState<ChartData[]>([])
   const [fullChartData, setFullChartData] = useState<any>(null)
-  const [fundamental, setFundamental] = useState<FundamentalData | null>(null)
 
   useEffect(() => {
     if (!priceChartContainerRef.current || !volumeChartContainerRef.current) return
@@ -145,7 +143,6 @@ export default function ChartPanel() {
     if (selectedStock) {
       loadChartData()
       loadPurchases()
-      loadFundamental()
     }
   }, [selectedStock, timeframe])
 
@@ -255,17 +252,6 @@ export default function ChartPanel() {
       setPurchases(data)
     } catch (error) {
       console.error('Failed to load purchases:', error)
-    }
-  }
-
-  const loadFundamental = async () => {
-    if (!selectedStock) return
-    try {
-      const data = await fundamentalApi.getFundamental(selectedStock.symbol)
-      setFundamental(data)
-    } catch (error) {
-      console.error('Failed to load fundamental data:', error)
-      setFundamental(null)
     }
   }
 
@@ -607,15 +593,6 @@ export default function ChartPanel() {
             })()}
 
             {/* 財務データバッジ */}
-            {fundamental && (
-              <div className="flex gap-3 ml-8">
-                <MetricBadge label="PER" value={fundamental.per} unit="倍" />
-                <MetricBadge label="PBR" value={fundamental.pbr} unit="倍" />
-                <MetricBadge label="ROE" value={fundamental.roe} unit="%" />
-                <MetricBadge label="配当利回り" value={fundamental.dividend_yield} unit="%" />
-                <MetricBadge label="時価総額" value={fundamental.market_cap} />
-              </div>
-            )}
           </div>
 
           <div className="flex items-center gap-4">
