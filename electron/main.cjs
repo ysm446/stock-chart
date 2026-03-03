@@ -1,4 +1,4 @@
-const { app, BrowserWindow } = require('electron');
+const { app, BrowserWindow, Menu } = require('electron');
 const { spawn } = require('child_process');
 const fs = require('fs');
 const path = require('path');
@@ -10,6 +10,7 @@ let mainWindow = null;
 let backendProcess = null;
 let loadRetryCount = 0;
 const MAX_LOAD_RETRY = 20;
+let devToolsOpenedForError = false;
 
 function getBackendRoot() {
   if (app.isPackaged) {
@@ -92,9 +93,14 @@ async function createWindow() {
   } else {
     mainWindow.webContents.on('did-finish-load', () => {
       loadRetryCount = 0;
+      devToolsOpenedForError = false;
     });
 
     mainWindow.webContents.on('did-fail-load', async (_event, errorCode, errorDescription) => {
+      if (!devToolsOpenedForError && !mainWindow.webContents.isDevToolsOpened()) {
+        mainWindow.webContents.openDevTools({ mode: 'detach' });
+        devToolsOpenedForError = true;
+      }
       if (loadRetryCount >= MAX_LOAD_RETRY) {
         process.stderr.write(`[electron] renderer load failed: ${errorCode} ${errorDescription}\n`);
         return;
@@ -114,11 +120,11 @@ async function createWindow() {
     });
 
     await mainWindow.loadURL(DEV_SERVER_URL);
-    mainWindow.webContents.openDevTools({ mode: 'detach' });
   }
 }
 
 app.whenReady().then(async () => {
+  Menu.setApplicationMenu(null);
   startBackend();
   await createWindow();
 
