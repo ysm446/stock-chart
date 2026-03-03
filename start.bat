@@ -1,32 +1,31 @@
-@echo off
+﻿@echo off
+setlocal
 chcp 65001 >nul
-echo =====================================
-echo   日本株チャートアプリ起動中...
-echo =====================================
-echo.
 
 cd /d %~dp0
 
-echo [1/2] バックエンドサーバーを起動中...
-start "Backend Server" cmd /k "cd backend && python -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000"
-timeout /t 3 >nul
-
-echo [2/2] フロントエンドサーバーを起動中...
-start "Frontend Server" cmd /k "cd frontend && npm run dev"
-timeout /t 5 >nul
-
-echo.
 echo =====================================
-echo   起動完了！
+echo   Starting Electron app...
 echo =====================================
 echo.
-echo アプリを開く: http://localhost:5173
-echo API確認: http://localhost:8000/docs
-echo.
-echo 終了するには、開いた2つのウィンドウで Ctrl+C を押してください
-echo.
 
-timeout /t 3 >nul
-start http://localhost:5173
+if not exist package.json (
+  echo [ERROR] package.json was not found in the project root.
+  echo Please run this file from the stock-chart root folder.
+  pause
+  exit /b 1
+)
 
-pause
+call npm run dev
+set EXIT_CODE=%ERRORLEVEL%
+
+if not "%EXIT_CODE%"=="0" (
+  echo.
+  echo [ERROR] Failed to start Electron app. Please check:
+  echo   1) npm install
+  echo   2) npm --prefix frontend install
+  echo   3) backend Python venv and requirements
+  pause
+)
+
+endlocal & exit /b %EXIT_CODE%
