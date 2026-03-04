@@ -51,7 +51,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 }
 
 export default function PortfolioTrendChart() {
-  const [period, setPeriod] = useState('1w')
+  const [period, setPeriod] = useState('1mo')
   const [history, setHistory] = useState<PortfolioHistoryPoint[]>([])
   const [loading, setLoading] = useState(true)
 
