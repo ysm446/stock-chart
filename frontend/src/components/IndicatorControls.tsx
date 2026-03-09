@@ -11,6 +11,8 @@ export default function IndicatorControls() {
     sma25: '移動平均線 25日',
     sma50: '移動平均線 50日',
     sma75: '移動平均線 75日',
+    sma100: '移動平均線 100日',
+    sma200: '移動平均線 200日',
     ema: '指数移動平均 (EMA)',
     bollinger: 'ボリンジャーバンド',
   }

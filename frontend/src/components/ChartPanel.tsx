@@ -429,6 +429,40 @@ export default function ChartPanel() {
         indicatorSeriesRef.current.set('sma75', sma75Series)
       }
 
+      if (indicator.type === 'sma100' && data.sma100) {
+        const sma100Series = priceChartRef.current!.addLineSeries({
+          color: '#AA00FF',
+          lineWidth: 1,
+          title: 'SMA(100)',
+          priceLineVisible: false,
+          lastValueVisible: false,
+          crosshairMarkerVisible: false,
+        })
+        const sma100Data: LineData<Time>[] = data.sma100.map((item: any) => ({
+          time: item.time as Time,
+          value: item.value,
+        }))
+        sma100Series.setData(sma100Data)
+        indicatorSeriesRef.current.set('sma100', sma100Series)
+      }
+
+      if (indicator.type === 'sma200' && data.sma200) {
+        const sma200Series = priceChartRef.current!.addLineSeries({
+          color: '#FF1744',
+          lineWidth: 1,
+          title: 'SMA(200)',
+          priceLineVisible: false,
+          lastValueVisible: false,
+          crosshairMarkerVisible: false,
+        })
+        const sma200Data: LineData<Time>[] = data.sma200.map((item: any) => ({
+          time: item.time as Time,
+          value: item.value,
+        }))
+        sma200Series.setData(sma200Data)
+        indicatorSeriesRef.current.set('sma200', sma200Series)
+      }
+
       if (indicator.type === 'ema' && data.ema) {
         const emaSeries = priceChartRef.current!.addLineSeries({
           color: '#FFD600',

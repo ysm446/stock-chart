@@ -72,6 +72,8 @@ async def get_chart_data(
     sma25_data = []
     sma50_data = []
     sma75_data = []
+    sma100_data = []
+    sma200_data = []
     ema_data = []
     bb_data = {"upper": [], "middle": [], "lower": []}
     
@@ -101,7 +103,25 @@ async def get_chart_data(
                 "time": date.strftime('%Y-%m-%d'),
                 "value": float(value)
             })
-    
+
+    # SMA100計算
+    sma100 = IndicatorCalculator.calculate_sma(df, period=100)
+    for date, value in zip(df['date'], sma100):
+        if pd.notna(value):
+            sma100_data.append({
+                "time": date.strftime('%Y-%m-%d'),
+                "value": float(value)
+            })
+
+    # SMA200計算
+    sma200 = IndicatorCalculator.calculate_sma(df, period=200)
+    for date, value in zip(df['date'], sma200):
+        if pd.notna(value):
+            sma200_data.append({
+                "time": date.strftime('%Y-%m-%d'),
+                "value": float(value)
+            })
+
     # EMA計算
     ema = IndicatorCalculator.calculate_ema(df, period=12)
     for date, value in zip(df['date'], ema):
@@ -137,6 +157,8 @@ async def get_chart_data(
         "sma25": sma25_data,
         "sma50": sma50_data,
         "sma75": sma75_data,
+        "sma100": sma100_data,
+        "sma200": sma200_data,
         "ema": ema_data,
         "bollinger": bb_data,
         "quote": realtime_quote

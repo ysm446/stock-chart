@@ -21,7 +21,7 @@ export interface Watchlist {
 export type Timeframe = '1d' | '1wk' | '1mo'
 
 export interface Indicator {
-  type: 'sma25' | 'sma50' | 'sma75' | 'ema' | 'bollinger'
+  type: 'sma25' | 'sma50' | 'sma75' | 'sma100' | 'sma200' | 'ema' | 'bollinger'
   visible: boolean
   period?: number
 }
@@ -55,6 +55,8 @@ export const useChartStore = create<ChartStore>()(
         { type: 'sma25', visible: false, period: 25 },
         { type: 'sma50', visible: false, period: 50 },
         { type: 'sma75', visible: false, period: 75 },
+        { type: 'sma100', visible: false, period: 100 },
+        { type: 'sma200', visible: false, period: 200 },
         { type: 'ema', visible: false, period: 12 },
         { type: 'bollinger', visible: false, period: 20 },
       ],
@@ -87,6 +89,16 @@ export const useChartStore = create<ChartStore>()(
         showVolume: state.showVolume,
         showPurchaseMarkers: state.showPurchaseMarkers,
       }),
+      merge: (persisted: any, current) => {
+        const defaultIndicators = current.indicators as Indicator[]
+        const persistedIndicators: Indicator[] = persisted?.indicators ?? []
+        // 保存済みの visible 状態を引き継ぎつつ、新規インジケーターは初期値で追加
+        const mergedIndicators = defaultIndicators.map((def) => {
+          const saved = persistedIndicators.find((p) => p.type === def.type)
+          return saved ? { ...def, visible: saved.visible } : def
+        })
+        return { ...current, ...persisted, indicators: mergedIndicators }
+      },
     }
   )
 )
