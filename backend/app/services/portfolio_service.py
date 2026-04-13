@@ -1,9 +1,7 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from app.models import StockPurchase, Stock, StockFundamental
-from app.data_fetcher import DataFetcher
-from typing import Dict, List
-from decimal import Decimal
+from typing import Dict
 
 class PortfolioService:
     @staticmethod
@@ -40,6 +38,7 @@ class PortfolioService:
         total_value = 0.0
         total_cost = 0.0
         total_annual_dividend = 0.0
+        from app.data_fetcher import DataFetcher
 
         for group in purchase_groups:
             stock_id = group.stock_id
@@ -142,6 +141,7 @@ class PortfolioService:
         yf_period, tail_n = PortfolioService.PERIOD_CONFIG.get(
             period, ("1mo", 7)
         )
+        from app.data_fetcher import DataFetcher
 
         # 購入履歴から保有銘柄と保有数を取得
         purchase_groups = db.query(

@@ -1,26 +1,34 @@
+from functools import lru_cache
+import json
+
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
+
 from app.database import get_db
-from app.data_fetcher import DataFetcher
-from app.indicators import IndicatorCalculator
-from typing import Optional
-import redis
-import json
-import pandas as pd
 
 router = APIRouter()
 
-# Redisクライアント（オプショナル）
-try:
-    redis_client = redis.Redis(host='localhost', port=6379, db=0, decode_responses=True, socket_connect_timeout=1)
-    redis_client.ping()
-except:
-    redis_client = None  # Redisなしでも動作
+
+@lru_cache(maxsize=1)
+def get_redis_client():
+    try:
+        import redis
+        redis_client = redis.Redis(
+            host='localhost',
+            port=6379,
+            db=0,
+            decode_responses=True,
+            socket_connect_timeout=1,
+        )
+        redis_client.ping()
+        return redis_client
+    except Exception:
+        return None
 
 @router.get("/{symbol}")
 async def get_chart_data(
     symbol: str,
-    timeframe: str = Query("1d", regex="^(1d|1wk|1mo)$"),
+    timeframe: str = Query("1d", pattern="^(1d|1wk|1mo)$"),
     db: Session = Depends(get_db)
 ):
     """
@@ -35,9 +43,14 @@ async def get_chart_data(
         yahoo_symbol = symbol
     else:
         yahoo_symbol = f"{symbol}.T"
-    
+
+    from app.data_fetcher import DataFetcher
+    from app.indicators import IndicatorCalculator
+    import pandas as pd
+
+    redis_client = get_redis_client()
     cache_key = f"chart:{symbol}:{timeframe}"
-    
+
     # キャッシュチェック
     if redis_client:
         try:
@@ -175,10 +188,13 @@ async def get_chart_data(
 @router.get("/{symbol}/volume-profile")
 async def get_volume_profile(
     symbol: str,
-    timeframe: str = Query("1d", regex="^(1d|1wk|1mo)$"),
+    timeframe: str = Query("1d", pattern="^(1d|1wk|1mo)$"),
     bins: int = Query(50, ge=10, le=100)
 ):
     """価格帯別出来高分布取得"""
+    from app.data_fetcher import DataFetcher
+    from app.indicators import IndicatorCalculator
+
     df = DataFetcher.fetch_stock_data(symbol, period="1y", interval=timeframe)
     
     if df is None or df.empty:

@@ -2,7 +2,6 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models import StockFundamental
-from app.fundamental_fetcher import FundamentalFetcher
 from pydantic import BaseModel
 from datetime import datetime, timedelta
 from typing import Optional
@@ -65,6 +64,8 @@ async def get_fundamental_data(symbol: str, db: Session = Depends(get_db)):
         )
 
     # yfinanceから新規取得
+    from app.fundamental_fetcher import FundamentalFetcher
+
     data = FundamentalFetcher.fetch_fundamental_data(yahoo_symbol)
 
     if not data:

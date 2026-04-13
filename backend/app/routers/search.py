@@ -1,6 +1,7 @@
 from fastapi import APIRouter
 from pydantic import BaseModel
 from typing import List
+from functools import lru_cache
 import csv
 import os
 
@@ -61,6 +62,7 @@ class StockSearchResult(BaseModel):
     sector: str = ""
 
 # 銘柄マスターデータをCSVから読み込み
+@lru_cache(maxsize=1)
 def load_stock_master():
     stocks = []
     csv_path = os.path.join(os.path.dirname(__file__), '..', '..', 'data', 'jpx_stocks.csv')
@@ -96,9 +98,6 @@ def load_stock_master():
     
     return stocks
 
-# 起動時に読み込み
-STOCK_MASTER = load_stock_master()
-
 @router.get("/stocks/search", response_model=List[StockSearchResult])
 async def search_stocks(q: str):
     """
@@ -111,9 +110,10 @@ async def search_stocks(q: str):
     results = []
     query_upper = q.upper()
     query_lower = q.lower()
-    
+    stock_master = load_stock_master()
+
     # 検索実行
-    for code, name_jp, name_en, sector in STOCK_MASTER:
+    for code, name_jp, name_en, sector in stock_master:
         # 銘柄コードまたは銘柄名で一致
         if (query_upper in code.upper() or 
             query_lower in name_jp.lower() or 

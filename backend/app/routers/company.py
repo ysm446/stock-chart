@@ -2,7 +2,6 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models import CompanyInfo
-from app.data_fetcher import DataFetcher
 from pydantic import BaseModel
 from typing import Optional
 from datetime import datetime
@@ -55,6 +54,8 @@ async def get_company_info(symbol: str, db: Session = Depends(get_db)):
         return company_info
 
     # DBにない場合はyfinanceから取得（yahoo_symbolで）
+    from app.data_fetcher import DataFetcher
+
     print(f"[{symbol}] Fetching company info from yfinance as {yahoo_symbol}")
     company_data = DataFetcher.get_company_info(yahoo_symbol)
 
@@ -81,6 +82,8 @@ async def refresh_company_info(symbol: str, db: Session = Depends(get_db)):
         yahoo_symbol = symbol
     else:
         yahoo_symbol = f"{symbol}.T"
+
+    from app.data_fetcher import DataFetcher
 
     print(f"[{symbol}] Refreshing company info from yfinance as {yahoo_symbol}")
     company_data = DataFetcher.get_company_info(yahoo_symbol)
