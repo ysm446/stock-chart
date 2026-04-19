@@ -1,6 +1,8 @@
 const { app, BrowserWindow, Menu } = require('electron');
 const { spawn } = require('child_process');
 const fs = require('fs');
+const net = require('net');
+const http = require('http');
 const path = require('path');
 
 const BACKEND_PORT = process.env.BACKEND_PORT || '8000';
@@ -43,11 +45,74 @@ function getPythonCommands(backendRoot) {
   return [...new Set(commands)];
 }
 
-function startBackend() {
+function isPortInUse(port) {
+  return new Promise((resolve) => {
+    const server = net.createServer();
+    server.once('error', (err) => resolve(err.code === 'EADDRINUSE'));
+    server.once('listening', () => server.close(() => resolve(false)));
+    server.listen(port, '127.0.0.1');
+  });
+}
+
+function isOurBackendRunning(port) {
+  return new Promise((resolve) => {
+    const req = http.get(`http://127.0.0.1:${port}/health`, { timeout: 1500 }, (res) => {
+      resolve(res.statusCode === 200);
+    });
+    req.on('error', () => resolve(false));
+    req.on('timeout', () => { req.destroy(); resolve(false); });
+  });
+}
+
+function killPortProcess(port) {
+  return new Promise((resolve) => {
+    if (process.platform === 'win32') {
+      const findProc = spawn(
+        'cmd', ['/c', `netstat -ano 2>nul | findstr ":${port} " | findstr "LISTENING"`],
+        { windowsHide: true }
+      );
+      let output = '';
+      findProc.stdout?.on('data', (d) => { output += d.toString(); });
+      findProc.on('close', () => {
+        const pids = [...new Set(
+          output.split('\n')
+            .map(line => { const m = line.match(/\s+(\d+)\s*$/); return m ? m[1] : null; })
+            .filter(Boolean)
+        )];
+        if (pids.length === 0) { resolve(); return; }
+        let remaining = pids.length;
+        for (const pid of pids) {
+          process.stdout.write(`[backend] killing PID ${pid} on port ${port}\n`);
+          spawn('taskkill', ['/PID', pid, '/F'], { windowsHide: true })
+            .on('close', () => { if (--remaining === 0) resolve(); });
+        }
+      });
+    } else {
+      spawn('sh', ['-c', `lsof -ti :${port} | xargs kill -9 2>/dev/null; true`], {})
+        .on('close', resolve);
+    }
+  });
+}
+
+async function startBackend() {
+  const portNum = parseInt(BACKEND_PORT);
   const backendRoot = getBackendRoot();
   const args = ['-m', 'uvicorn', 'app.main:app', '--host', '127.0.0.1', '--port', BACKEND_PORT];
   const pythonCommands = getPythonCommands(backendRoot);
   let commandIndex = 0;
+
+  // Already our backend? → reuse
+  if (await isOurBackendRunning(portNum)) {
+    process.stdout.write(`[backend] already running on port ${portNum}, reusing\n`);
+    return;
+  }
+
+  // Port occupied by something else? → kill it
+  if (await isPortInUse(portNum)) {
+    process.stdout.write(`[backend] port ${portNum} is in use, releasing...\n`);
+    await killPortProcess(portNum);
+    await new Promise(r => setTimeout(r, 500));
+  }
 
   const tryStart = () => {
     if (commandIndex >= pythonCommands.length) {
@@ -153,7 +218,7 @@ async function createWindow() {
 
 app.whenReady().then(async () => {
   Menu.setApplicationMenu(null);
-  startBackend();
+  await startBackend();
   await createWindow();
 
   app.on('activate', async () => {

@@ -71,6 +71,13 @@ if defined BACKEND_PYTHON (
   echo.
 )
 
+echo Checking for port conflicts...
+for /f "tokens=5" %%a in ('netstat -ano 2^>nul ^| findstr ":5173 " ^| findstr "LISTENING"') do (
+  echo [INFO] Releasing port 5173 (PID: %%a)
+  taskkill /PID %%a /F >nul 2>&1
+)
+echo.
+
 echo Launch command: npm run dev
 echo This starts Vite and Electron together.
 echo.
